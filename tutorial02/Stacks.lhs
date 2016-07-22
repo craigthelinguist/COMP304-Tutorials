@@ -75,5 +75,4 @@ Thie following code example is how we could run all the tests at once...
 
 > testAll = and [testPush, testPeek, testPop]
 
-You can load this file in GHCi like any normal .hs file. If you want to generate a .pdf you can install pandoc and use the following command:
-pandoc Stacks.lhs -o Stacks.pdf
+You can load this file in GHCi like any normal .hs file. If you want to generate a .pdf you can install pandoc and use the following command: pandoc Stacks.lhs -o Stacks.pdf
