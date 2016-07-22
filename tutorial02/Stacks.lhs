@@ -27,9 +27,12 @@ We may push something onto a Stack, which creates a new Stack.
 > push :: a -> Stack a -> Stack a
 > push x stk = (x:stk)
 
-To be able to check if a Stack contains an item requires us to be able to test for equality, so we put a type constraint here.
+To be able to check if a Stack contains a certain item requires us to be able to test them for equality, so we put a type constraint here.
 
 > stackContains :: (Eq a) => a -> Stack a -> Bool
+
+The empty stack contains nothing. We could use "emptyStack" instead of "[]" but the patterns would overlap.
+
 > stackContains x [] = False
 
 We might think about pattern-matching the head of the stack against the item being checked, as in this code example:
