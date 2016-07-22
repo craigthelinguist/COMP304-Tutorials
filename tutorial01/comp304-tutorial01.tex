@@ -1,0 +1,300 @@
+\documentclass[a4paper,12pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath}
+\usepackage[english]{babel}
+\usepackage{listings}
+
+\lstset{tabsize=3, basicstyle=\ttfamily\small, commentstyle=\itshape\rmfamily, numbers=left, numberstyle=\tiny, language=java,moredelim=[il][\sffamily]{?},mathescape=true,showspaces=false,showstringspaces=false,columns=fullflexible,xleftmargin=5pt,escapeinside={(@}{@)}, morekeywords=[1]{let,if,then,else}}
+\lstloadlanguages{Java, Haskell}
+
+\newcommand{\keywadj}[1]{\mathtt{#1}}
+\newcommand{\keyw}[1]{\keywadj{#1}~}
+
+\begin{document}
+
+\title{COMP304 Tutorial 1 \\ 15/07/2016}
+\date{}
+\maketitle
+
+\noindent
+\section{Getting Started}
+When you download and install Haskell it will come with two programs: $\keywadj{ghc}$ and $\keywadj{ghci}$. $\keywadj{ghc}$ is a compiler that produces executables from Haskell source files (like $\keywadj{gcc}$ for C). $\keywadj{GHCi}$ is an interpreter; as you enter lines of Haskell, $\keywadj{GHCi}$ will spit out the result (like the Python interpreter). \\
+
+\noindent
+When you run $\keywadj{GHCi}$ it automatically loads the standard library (which is called Prelude) and prompt you for some input. If you enter in some arithmetic or boolean expressions it will give you the answer.
+
+\begin{lstlisting}[language=Haskell]
+Prelude> -3
+-3
+Prelude> 2 - 3
+-1
+Prelude> 1 /= 1
+False
+Prelude> 4 == 4
+True
+\end{lstlisting}
+
+\noindent
+Note that Haskell uses /= for ``not equals'', which sort of resembles the inequality symbol $\neq$ from mathematics. A good mental model is to think of the built-in boolean and arithmetic operators as being like functions. With that in mind, what's wrong with the following?
+
+\begin{lstlisting}[language=Haskell]
+Prelude> 1 + -2
+
+<interactive>:10:1:
+    Precedence parsing error
+        cannot mix `+' [infixl 6] and prefix `-' [infixl 6] in the same infix expression
+\end{lstlisting}
+
+\noindent
+Some operators are written infix i.e. between their arguments. In this case, $\keywadj{GHCi}$ is confused about how to interpret this because we've mixed an infix operator ``+'' with a prefix operator ``-''. The fix is to add brackets to disambiguate:
+
+\begin{lstlisting}[language=Haskell]
+Prelude> 1 + (-2)
+-1
+\end{lstlisting}
+
+\noindent
+When you see -2, think of it as the operator ``-'' (negation) applied to the value 2. The operator ``-'' is overloaded: it can either mean the operator which negates numbers, or the operator which subtracts one number from another. Functions in Haskell are frequently overloaded by the argument's type and even value (by pattern-matching, as we'll eventually see). \\
+
+\noindent
+You can exit GHCi like so:
+\begin{lstlisting}[language=Haskell]
+Prelude> :quit
+Leaving GHCi.
+\end{lstlisting}
+
+\section{Loading From Files}
+Haskell source files usually end with the file extension .hs. There are also literate Haskell files, which end in .lhs. We'll talk about those more next week. For now we can write some Haskell code into the file fact.hs and load it into $\keywadj{GHCi}$ like so:
+\begin{lstlisting}[language=Haskell]
+fact n = if n == 0 then 1 else n * fact (n-1)
+\end{lstlisting}
+
+\begin{lstlisting}[language=Haskell]
+Prelude> :load fact
+[1 of 1] Compiling Main             ( fact.hs, interpreted )
+Ok, modules loaded: Main.
+*Main> fact 3
+6
+\end{lstlisting}
+
+\noindent
+The prompt has changed from Prelude to Main. This is $\keywadj{GHCi}$ keeping track of which modules are currently loaded. In fact.hs we haven't specified a module, so our fact function defaults to residing in the Main module.\\ 
+
+\noindent
+Here's an expression which recurses forever:
+\begin{lstlisting}[language=Haskell]
+*Main> fact (-2)
+\end{lstlisting}
+
+\noindent
+In some ways Haskell functions are like mathematical functions because they're referentially transparent: on the same input, they'll give the same output, regardless of any ambient external state. Unlike mathematical functions, Haskell functions don't have to be total (defined on every input), as with $\keywadj{fact (-2)}$. 
+
+\section{Conditionals}
+
+\noindent
+Let's modify the $\keywadj{fact}$ function so it only has one branch and then load it into $\keywadj{GHCi}$ again.
+
+\begin{lstlisting}[language=Haskell]
+fact n = if n = 0 then 1
+\end{lstlisting}
+
+\begin{lstlisting}[language=Haskell]
+:reload
+[1 of 1] Compiling Main             ( fact.hs, interpreted )
+
+fact.hs:3:1:
+    parse error (possibly incorrect indentation or mismatched brackets)
+Failed, modules loaded: none.
+\end{lstlisting}
+
+\noindent
+Unlike conditionals in Java or C, Haskell's conditional is an expression; when executed it reduces to a value. Therefore it must be defined on both branches (it's like the ternary expression if you've seen that).
+
+\section{First-Class Functions}
+In Haskell, functions are ``first-class''. This means they can be treated as variables, return-values, etc. like other values in your program. Here's the $\keywadj{twice}$ function:
+
+\begin{lstlisting}[language=Haskell]
+twice f x = f (f x)
+\end{lstlisting}
+
+\begin{lstlisting}[language=Haskell]
+*Main> twice fact 3
+720
+\end{lstlisting}
+
+\noindent
+Note: $\keywadj{twice~fact~2}$ is NOT the same as $\keywadj{twice~(fact~2)}$. $\keywadj{twice}$ is being applied first (function application takes highest precedence, left-to-right). $\keywadj{twice}$ takes two arguments, so its first argument is bound to the function $\keywadj{fact}$ and its second argument is bound to the number 2. \\
+
+\noindent
+To understand how we got the value 720 we can use substitution. Because Haskell is referentially transparent, when you see a function being applied you may always substitute it for its body. Here's what that looks like:
+
+\begin{lstlisting}[language=Haskell]
+twice fact 3
+fact (fact 3)
+fact (if 3 = 0 then 1 else 3 * fact (3-1))
+fact (3 * fact (3-1))
+fact (3 * fact 2))
+fact (3 * (if 2 = 0 then 1 else 2 * fact (2-1)))
+fact (3 * (2 * fact (2-1)))
+fact (3 * (2 * fact (1)))
+...
+720
+\end{lstlisting}
+
+\noindent
+With repeated substitution we'll eventually get to 720. Useful when debugging! Use this technique when you see a complicated Haskell expression you don't understand:
+
+\begin{lstlisting}[language=Haskell]
+twice (2-) 2
+2- (2- 2)
+2- 0
+2
+\end{lstlisting}
+
+\section{Lazy Evaluation}
+Though we can use substitution to correctly reason about programs, Haskell really does something else under the hood. Expressions are only evaluated when they're needed. Later we'll see that we can do cool things with lazy evaluation (the poster-boy being infinite lists). For now think about this program:
+
+\begin{lstlisting}[language=Haskell]
+recurseForever n = recurseForever n
+tricky n = 69
+\end{lstlisting}
+
+\begin{lstlisting}[language=Haskell]
+*Main> tricky (recurseForever 5)
+69
+\end{lstlisting}
+
+\noindent
+In a strictly-evaluated language we would evaluate $\keywadj{recurseForever~5}$, bind the result to $\keywadj{n}$, then apply $\keywadj{tricky}$ to the result. \\
+
+\noindent
+In a lazily-evaluated language we put the expression $\keywadj{recurseForever~5}$ in a ``thunk'' and continue. The thunk is evaluated if it gets used later on. Since the body of $\keywadj{tricky}$ never uses $\keywadj{n}$, we never need to know the value of $\keywadj{recurseForever~5}$, so never enter into the endless recursion.
+
+\section{Types}
+Haskell has a strong, inferred type-system. This means you often don't have to provide explicit type signatures for functions; Haskell will figure that out using an algorithm called Hindley-Milner type inference. Explicitly writing out the type of a function is good practice though since it serves as documentation to other programmers. \\
+
+\noindent
+In GHCi we can check the type of a function like this:
+
+\begin{lstlisting}[language=Haskell]
+*Main> :type fact
+fact :: (Eq a, Num a) => a -> a
+\end{lstlisting}
+
+\noindent
+Haskell is telling us that the type of the ``fact'' function is $\keywadj{(Eq~a,~Num~a) \Rightarrow a \rightarrow a}$. $\keywadj{a}$ is a type parameter; a bit like Java's generics. The stuff left of $\keywadj{\Rightarrow}$ specifies that whatever the type of $\keywadj{a}$ is, you must be able to test it for equality (it must be $\keywadj{Eq~ a}$) and you must be able to do arithmetic on it (it must be $\keywadj{Num~ a}$). \\
+
+\noindent
+The meaning of $\keywadj{a \rightarrow a}$ is that $\keywadj{fact}$ takes in something of type a and outputs something of type $\keywadj{a}$, where $\keywadj{a}$ is any type contrained by the type-classes above. \\
+
+\noindent
+Since $\keywadj{fact}$ only uses equality and arithmetic, type inference has ascribed it as operating on any type for which equality and arithmetic is defined. This means we can immediately use it on doubles. \\
+
+\noindent
+Is $\keywadj{Bool}$ a vaild type that matches the signature? What happens if we try to apply $\keywadj{fact}$ to $\keywadj{Bool}$?
+
+\begin{lstlisting}[language=Haskell]
+*Main> fact True
+
+<interactive>:6:1:
+    No instance for (Num Bool) arising from a use of `fact'
+    Possible fix: add an instance declaration for (Num Bool)
+    In the expression: fact True
+    In an equation for `it': it = fact True
+\end{lstlisting}
+
+\noindent
+Though you can check if two $\keywadj{Bools}$ are equal, you can't multiply them so our $\keywadj{fact}$ function isn't going to work. This is why GHCi is complaining about $\keywadj{True}$ not having a type that matches $\keywadj{Num~Bool}$. \\
+
+\noindent
+ $\keywadj{Eq}$ and $\keywadj{Num}$ are type-classes; they are sets of types upon which certain functions are defined. $\keywadj{Eq}$ is the set of types where $==$ is defined. $\keywadj{Num}$ is the set of types that you can perform arithmetic on ($\keywadj{Double}$, $\keywadj{Int}$, etc). Type-classes are a little bit like interfaces in Java (but don't be fooled by the word ``class''; typeclasses are different to object-oriented programming classes). \\
+
+\noindent
+Note: ``it'' is a special variable in GHCi which stores the value of the last expression. If you enter ``it'' into the prompt you can see what that is. This is the meaning of the last line in the error message. \\
+
+\noindent
+Since the mathematical factorial function is only defined on whole numbers, let's put an explicit type on it.
+
+\begin{lstlisting}[language=Haskell]
+fact :: Int -> Int
+fact n = if n = 0 then 1 else n * fact (n-1)
+\end{lstlisting}
+
+\noindent
+Now if we reload the file and inspect the type of fact:
+
+\begin{lstlisting}[language=Haskell]
+*Main> :type fact
+fact :: Int -> Int
+\end{lstlisting}
+
+\noindent
+When we omit type information, Hindley-Milner type inference will figure out the most general type for which the function typechecks. Here's the type of the built-in max function:
+
+\begin{lstlisting}[language=Haskell]
+*Main> :type fact
+max :: Ord a => a -> a -> a
+\end{lstlisting}
+
+\noindent
+The $\keywadj{max}$ function operates on two values of any type $\keywadj{a}$ in the $\keywadj{Ord}$ typeclass (meaning its values can be compared/ordered). It returns something of type $\keywadj{a}$. Note that the arguments have to be of the same type. \\
+
+\noindent
+As you might expect, you can apply $\keywadj{max}$ to two numbers. You can also apply it to two $\keywadj{Chars}$, because $\keywadj{Chars}$ can be compared (alphabetically). However, you can't feed a $\keywadj{Char}$ and an $\keywadj{Int}$ to $\keywadj{max}$ because they have different types.
+
+\begin{lstlisting}[language=Haskell]
+*Main> max `c' `d'
+`d'
+*Main> max 3 `c'
+
+<interactive>:14:5:
+    No instance for (Num Char) arising from the literal `3'
+    Possible fix: add an instance declaration for (Num Char)
+    In the first argument of `max', namely `3'
+    In the expression: max 3 'c'
+    In an equation for `it': it = max 3 'c'
+
+\end{lstlisting}
+
+\noindent
+The error message is trying to consider `c' and 3 as the same type hence the error message about $\keywadj{Num Char}$ (it's trying to consider `c' as a number). \\
+
+\noindent
+For comparison, the signature for this Java function:
+
+\begin{lstlisting}[language=Java]
+int myMethod(double d, char c)
+\end{lstlisting}
+
+\noindent
+Would look like this in Haskell:
+
+\begin{lstlisting}[language=Haskell]
+myMethod :: Double -> Char -> Int
+\end{lstlisting}
+
+\noindent
+Later on we'll see the reason for the strange arrow notation. For now, just remember the type that the function returns is the last type in the sequence of arrows. Lastly, here's the type for $\keywadj{twice}$:
+
+\begin{lstlisting}[language=Haskell]
+twice :: (t -> t) -> t -> t
+\end{lstlisting}
+
+\noindent
+The first grouped $\keywadj{t \rightarrow t}$ is a function from $\keywadj{t}$ to $\keywadj{t}$. We may read this as: $\keywadj{twice}$ is a function which takes a function from $\keywadj{t \rightarrow t}$, and an input of type $\keywadj{t}$, and produces an output of type $\keywadj{t}$. There are no type-classes in this signature, so $\keywadj{t}$ has no constraints; it can be any type. \\
+
+\noindent
+$\rightarrow$ is right-associative, so the brackets are sometimes important. $\keywadj{t \rightarrow t \rightarrow t}$ is not the same thing as A: $\keywadj{(t \rightarrow t) \rightarrow t}$, but it is the same thing as B: $\keywadj{t \rightarrow (t \rightarrow t)}$. A is the type of a function which takes a $\keywadj{t \rightarrow t}$ as input and outputs a $\keywadj{t}$; B is the type of a function which takes a $\keywadj{t}$ as input and outputs a $\keywadj{t \rightarrow t}$.
+
+\section{Extra}
+
+Most commands in GHCi can be abbreviated by typing in the first letter they start with. So the following are the same:
+\begin{itemize}
+	\item $\keywadj{:load~fact}$ and $\keywadj{:l~fact}$
+	\item $\keywadj{:reload}$ and $\keywadj{:r}$
+	\item $\keywadj{:type~3}$ and $\keywadj{:t~3}$
+	\item $\keywadj{:quit}$ and $\keywadj{:q}$
+\end{itemize}
+
+\end{document}

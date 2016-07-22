@@ -1,0 +1,274 @@
+\documentclass[a4paper,12pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath}
+\usepackage[english]{babel}
+\usepackage{listings}
+
+\lstset{tabsize=3, basicstyle=\ttfamily\small, commentstyle=\itshape\rmfamily, numbers=left, numberstyle=\tiny, language=java,moredelim=[il][\sffamily]{?},mathescape=true,showspaces=false,showstringspaces=false,columns=fullflexible,xleftmargin=5pt,escapeinside={(@}{@)}, morekeywords=[1]{let,if,then,else}}
+\lstloadlanguages{Java, Haskell}
+
+\newcommand{\keywadj}[1]{\mathtt{#1}}
+\newcommand{\keyw}[1]{\keywadj{#1}~}
+
+\begin{document}
+
+\title{COMP304 Tutorial 2 \\ 22/07/2016}
+\date{}
+\maketitle
+
+\noindent
+\section{Pattern Matching}
+
+\noindent
+Pattern-matching lets the exact definition of a function change depending on the form of the arguments passed into it. We've already seen pattern-matching with the $\keywadj{fact}$ function.
+
+\begin{lstlisting}[language=Haskell]
+fact :: Int -> Int
+fact 0 = 1
+fact n = n * fact(n-1)
+\end{lstlisting}
+
+\noindent
+The patterns being matched on the left-hand side of the ``='' sign are $0$ and $n$. When Haskell sees an expression like $\keywadj{fact~2}$ it tries to match it against each definition of $\keywadj{fact}$, top-to-bottom. This means the order in which you define patterns is important. If we switched the order around:
+
+\begin{lstlisting}[language=Haskell]
+fact n = n * fact(n-1)
+fact 0 = 1
+\end{lstlisting}
+
+\noindent
+We'd get infinite recursion when trying to evaluate $\keywadj{fact~2}$. This is because Haskell is able to match any $\keywadj{Int}$ to the first pattern $\keywadj{fact~n}$. Thus it never reaches the base case. It is doing something like this:
+
+\begin{lstlisting}[language=Haskell]
+fact 2
+$\rightarrow$ 2 * fact(2-1)
+$\rightarrow$ 2 * fact(1)
+$\rightarrow$ 2 * (1 * fact(1-1))
+$\rightarrow$ 2 * (1 * fact(0))
+$\rightarrow$ 2 * (1 * (0 * (fact (0-1))))
+$\rightarrow$ 2 * (1 * (0 * (fact (-1))))
+\end{lstlisting}
+
+\noindent
+And so on. $\keywadj{GHCi}$ can sometimes warn us about situations like this. If you try to load the bad version of $\keywadj{fact.hs}$ it will tell you:
+
+\begin{lstlisting}[language=Haskell]
+*Main> :l fact.hs
+[1 of 1] Compiling Main             ( fact.hs, interpreted )
+
+fact.hs:2:1: Warning:
+    Pattern match(es) are overlapped
+    In an equation for `fact': fact 0 = ...
+\end{lstlisting}
+
+\noindent
+If your patterns don't cover every possible case that could apply, Haskell won't complain. If a function can't be matched at runtime an exception is thrown. Here's a function which returns $\keywadj{True}$ if you pass it the empty list. If you try to pass it a non-empty list, $\keywadj{GHCi}$ will complain that your patterns are non-exhaustive (they don't cover every possible form of list).
+
+\begin{lstlisting}[language=Haskell]
+isTheEmptyList :: [a] -> Bool
+isTheEmptyList [] = True
+\end{lstlisting}
+
+\begin{lstlisting}[language=Haskell]
+*Main> isTheEmptyList []
+True
+*Main> isTheEmptyList [1,2,3]
+*** Exception: fact.hs:3:1-19: Non-exhaustive patterns in function emptyList
+\end{lstlisting}
+
+\noindent
+If you run $\keywadj{GHCi}$ from the command-line like so: $\keywadj{ghci}$ -$\keywadj{fwarn}$- $\keywadj{incomplete}$-$\keywadj{patterns}$ it will tell you specifically what patterns are missing.
+
+\section{Guards}
+
+\noindent
+Here's the $\keywadj{fact}$ function defined with guards.
+
+\begin{lstlisting}[language=Haskell]
+fact n
+	| n > 0 = n * fact(n-1)
+	| otherwise = 1
+\end{lstlisting}
+
+\noindent
+This version with guards is essentially the same as the following:
+
+\begin{lstlisting}[language=Haskell]
+fact n = if n > 0 then n * fact(n-1) else 1
+\end{lstlisting}
+
+\noindent
+Guards end up being much more readable than using $\keywadj{ if ... then ... else ...}$. Unlike pattern-matching, guards can test whether any arbitrary property of the input holds. However, pattern-matching can be used to de-structure the input and pull them apart. Here's an example using both to determine if every $\keywadj{Int}$ in a list is even.
+
+\begin{lstlisting}[language=Haskell]
+isEven :: Int -> Bool
+isEven n = rem n 2 == 0 -- even if remainder on dividing by 2 is 0
+
+listIsEven :: [Int] -> Bool
+listIsEven [] = True
+listIsEven (x:xs) -- pattern-matching on the list
+	| isEven x = listIsEven xs -- check if current x is even, recurse on rest of the list
+	| otherwise = False
+\end{lstlisting}
+
+\noindent
+In mathematics we usually write arithmetic operations like $\keywadj{rem}$ as infix, rather than prefix. You can do this in Haskell with any function by using the backtick/grave character.
+
+\begin{lstlisting}[language=Haskell]
+isEven :: Int -> Bool
+isEven n = n `rem` 2 == 0
+\end{lstlisting}
+
+\noindent
+$\keywadj{n~`rem`~2}$ is the same as $\keywadj{rem~n~2}$. Whether you choose to write some functions as infix is a stylistic choice. Note that ` is not an apostrophe; it's the grave/backtick character. 
+
+\section{Polymorphism}
+
+\noindent
+Polymorphism is the ability for a single definition to automatically adapt and apply to multiple types. It helps facilitate code re-use and modularity.\\
+
+\noindent
+ Note the exact meaning of polymorphism is different across languages and paradigms. While the general idea is the same, it's realised in slightly different ways. In Java, polymorphism is achieved by method overloading and inheritance. In Haskell, it is achieved by ad-hoc polymorphism and parametric polymorphism. \\
+
+\noindent
+Parametric polymorphism is the ability for the same function to operate on multiple types. For example, the identity function is defined on any type $\keywadj{a}$. Depending on whether we pass e.g. an $\keywadj{Int}$ or a $\keywadj{Bool}$, the $\keywadj{id}$ function may be acting like an $\keywadj{Int \rightarrow Int}$ function or like a $\keywadj{Bool \rightarrow Bool}$ function. Parametric polymorphism is a little bit like the use of generics in Java.
+
+\begin{lstlisting}[language=Haskell]
+id :: a -> a
+id x = x
+\end{lstlisting}
+
+\noindent
+Ad-hoc polymorphism is the ability for functions to do different things depending on the types of the values it is being applied to. We've seen an example of this already:
+
+\begin{lstlisting}[language=Haskell]
+max :: Ord a => a -> a -> a
+max x y
+	| y > x = y
+	| otherwise = x
+\end{lstlisting}
+
+\noindent
+The $\keywadj{max}$ function operates on arguments of type $\keywadj{a}$, where $\keywadj{a}$ is in the $\keywadj{Ord}$ type-class. $\keywadj{Int}$ and $\keywadj{Char}$ are both in $\keywadj{Ord}$. The function for comparing two $\keywadj{Ints}$ is different to the function for comparing two $\keywadj{Chars}$, so $\keywadj{max~1~2}$ and $\keywadj{max~'a'~'c'}$ do different things when evaluated. But we don't have to account for it in the definition of $\keywadj{max}$.
+
+\noindent
+In general, if you see type-class constraints in the signature of a function, then ad-hoc polymorphism is at play.
+
+
+\section{Tail Recursion}
+
+\noindent
+In imperative languages each recursive call creates a new stack-frame to store variables local to that recursive call. If you make $n$ recursive calls then your recursive function will be making $\mathcal{O}(n)$ stack frames. Typical linear recursion therefore has a space and time complexity of $\mathcal{O}(n)$. \\
+
+\noindent
+If the last expression in a recursive function is returning the value of the recursive call, it is called tail recursive. Since a tail recursive function doesn't need to do anything except return after the recursive call, its local variables don't need to be stored anymore. The only stack frame that needs to be remembered is the most recent one. Tail recursive calls can be optimised to have a constant $\mathcal{O}(1)$ time complexity. \\
+
+\noindent
+Many compilers (such as Haskell's $\keywadj{GHC}$) will automatically optimise tail-recursive functions to be $\mathcal{O}(1)$ in space complexity. In an imperative language, tail recursion can be converted into an equivalent loop with $\mathcal{O}(1)$ space complexity. \\
+
+\noindent
+Haskell doesn't \textit{really} have a stack like imperative languages (think lazy evaluation), but the same principle applies. The following example is not tail recursive, because in the case for $\keywadj{myLen (x:xs)}$, you must add $1$ after computing $\keywadj{myLen xs}$. \\
+
+\begin{lstlisting}[language=Haskell]
+-- Get the length of a list.
+myLen :: [a] -> Int
+myLen [] = 0
+myLen (x:xs) = 1 + (myLen xs)
+\end{lstlisting}
+
+\noindent
+If we perform substitution on an example like $\keywadj{myLen [1,1,1,1]}$ we'll see the length of the lines grows proportional to the length of the list, i.e. the space complexity is $\mathcal{O}(n)$.
+
+\begin{lstlisting}[language=Haskell]
+myLen [1,1,1,1]
+$\rightarrow$ 1 + (myLen [1,1,1])
+$\rightarrow$ 1 + (1 + (myLen [1,1]))
+$\rightarrow$ 1 + (1 + (1 + (myLen [1])))
+$\rightarrow$ 1 + (1 + (1 + (1 + (myLen []))))
+$\rightarrow$ 1 + (1 + (1 + (1 + 0)))
+$\rightarrow$ 1 + (1 + (1 + 1))
+$\rightarrow$ 1 + (1 + 2)
+$\rightarrow$ 1 + 3
+$\rightarrow$ 4
+\end{lstlisting}
+
+\noindent
+You can often rewrite functions to be tail-recursive by introducing extra parameters (often called accumulators) and helper functions. To make $\keywadj{myLen}$ tail-recursive we'll add an argument (called $\keywadj{acc}$) which keeps track of how many times we've seen $\keywadj{goal}$ so far. When we get to the end of the list we return $\keywadj{acc}$.
+
+\begin{lstlisting}[language=Haskell]
+-- Get the length of a list.
+myLen :: [a] -> Int
+myLen xs = myLen' 0 xs
+
+-- Helper function to make it tail recursive.
+myLen' acc [] = acc
+myLen' acc (x:xs) = myLen' (acc+1) xs
+\end{lstlisting}
+
+\noindent
+Doing substitution on this version reveals it has $\mathcal{O}(1)$ space complexity, because each line is the same length. This optimised form is sometimes called ``iteration''.
+
+\begin{lstlisting}[language=Haskell]
+myLen [1,1,1,1]
+$\rightarrow$ myLen' 0 [1,1,1,1]
+$\rightarrow$ myLen' 1 [1,1,1]
+$\rightarrow$ myLen' 2 [1,1]
+$\rightarrow$ myLen' 3 [1]
+$\rightarrow$ myLen' 4 []
+$\rightarrow$ 4
+\end{lstlisting}
+
+\noindent
+Final note: we could have just made $\keywadj{Count}$ take extra arguments instead of defining an extra $\keywadj{Count'}$ function, but it's nicer to have a helper because the person using your function doesn't have to know about the implementation details. \\
+
+\noindent
+Final final note: there's another concept called ``guarded recursion'' which is more relevant to Haskell because of lazy evaluation. We may talk about it later, or you can find explanations online.
+
+\section{Tuples}
+
+\noindent
+Tuples can be used to group multiple types together to form a new type. This is useful for passing multiple values around together or returning multiple values. \\
+
+\noindent
+In a language like Python, tuples are essentially immutable lists; this is not the case in Haskell. For example, tuples can be composed out of different types: $\keywadj{(3,True)}$ is a valid tuple but $\keywadj{[3,True]}$ is not a valid list. Here's a function which operates on tuples, using pattern-matching:
+
+\begin{lstlisting}[language=Haskell]
+myMax :: Ord a => (a,a) -> a
+myMax (x,y) = max x y
+\end{lstlisting}
+
+\noindent
+Take care not to confuse $\keywadj{max~x~y}$ and $\keywadj{max~(x,y)}$. The first is trying to apply $\keywadj{max}$ to two arguments $\keywadj{x}$ and $\keywadj{y}$; the second is trying to apply $\keywadj{max}$ to one argument, which is the tuple $\keywadj{(x,y)}$. \\
+
+\noindent
+Haskell won't accept two functions with the same name but different signatures. The following is an error:
+
+\begin{lstlisting}[language=Haskell]
+myMax :: Ord a => a -> a -> a
+myMax x y
+	| y > x = y
+	| otherwise = x
+
+myMax :: Ord a => (a,a) -> a
+myMax (x,y) = myMax x y
+\end{lstlisting}
+
+\noindent
+$\keywadj{GHCi}$ will complain that you have two functions called $\keywadj{myMax}$ with different signatures.
+
+\begin{lstlisting}[language=Haskell]
+:Prelude> :l mymax
+fact.hs:7:1:
+    Duplicate type signatures for `mymax'
+    at fact.hs:2:1-5
+       fact.hs:7:1-5
+
+fact.hs:8:1:
+    Multiple declarations of `mymax'
+    Declared at: fact.hs:3:1
+                 fact.hs:8:1
+Failed, modules loaded: none.
+\end{lstlisting}
+
+\end{document}
