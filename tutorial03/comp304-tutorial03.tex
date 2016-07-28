@@ -1,0 +1,375 @@
+\documentclass[a4paper,12pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath}
+\usepackage[english]{babel}
+\usepackage{listings}
+
+\lstset{tabsize=3, basicstyle=\ttfamily\small, commentstyle=\itshape\rmfamily, numbers=left, numberstyle=\tiny, language=java,moredelim=[il][\sffamily]{?},mathescape=true,showspaces=false,showstringspaces=false,columns=fullflexible,xleftmargin=5pt,escapeinside={(@}{@)}, morekeywords=[1]{let,if,then,else}}
+\lstloadlanguages{Java, Haskell}
+
+% Key word, key word adjacent.
+\newcommand{\kwa}[1]{\mathtt{#1}}
+\newcommand{\kw}[1]{\kwa{#1}~}
+
+\begin{document}
+
+\title{COMP304 Tutorial 3 \\ 28/07/2016}
+\date{}
+\maketitle
+
+\noindent
+\section{Lambdas}
+
+\noindent
+A lambda is a function which has no name (sometimes called an anonymous function). The functions we've defined in Haskell thus far have consisted of a name, arguments, and a body. A lambda just has arguments and a body. We've seen two ways to define the $\kw{max}$ function.
+
+\begin{lstlisting}[language=Haskell]
+mymax x y = if y > x then y else x
+
+mymax x y
+	| y > x = y
+	| otherwise =  x
+\end{lstlisting}
+
+\noindent
+Here's a third, equivalent way, by giving an appropriate lambda the name $\kwa{mymax}$.
+
+\begin{lstlisting}[language=Haskell]
+mymax :: Ord a => a -> a -> a
+mymax = \x y -> if y > x then y else x
+\end{lstlisting}
+
+\noindent
+Note that in this case you need the explicit type annotation or $\kw{GHCI}$ will complain. The slash denotes the beginning of a lambda. It's supposed to resemble the Greek lambda $\lambda$.
+
+\noindent
+Practically you wouldn't use lambdas in this way, but they are tremendously useful for higher-order functions. \\
+
+\noindent
+Lastly, we must mention the importance of lambdas in computability theory. Lambda functions on their own are a \textit{model of computation}. A model of computation attempts to capture the notion of what it means for something to be computable. Another model of computation you may have heard of is the Turing machine. \\
+
+\noindent
+A natural question to ask is whether some models are more powerful than others. The answer is yes, but there \textit{seems} to be a cap at a set of models which are called Turing complete. This cap is known as the Church-Turing thesis. \\
+
+\noindent
+This group includes Turing machines and the lambda calculus. Each model describes a simple ``programming language''. Any program you write in one can be written in the other. Modern languages like Java or Haskell or C are also in this group. Turing machine and lambda functions are \textit{so} simple that even trivial programs (such as adding two numbers) are of enormous length. However, their simplicity makes them amenable to mathematical reasoning. Most functional programming languages are based on (some variant of) the lambda calculus, which includes Haskell. \\
+
+\section{Currying}
+
+\noindent
+We've talked briefly about currying as a means of ``fixing inputs'' to a function. Recall the type of $\kwa{max}$.
+
+\begin{lstlisting}[language=Haskell]
+Prelude> :type max
+max :: Ord a => a -> a -> a
+\end{lstlisting}
+
+\noindent
+Multi-variable functions such as $\kwa{max}$ are \textit{syntactic sugar} really a sequence of nested lambdas which have been given a name. $\kwa{max}$ is \textit{really} a lambda which takes an argument $x$ of type $\kwa{a}$ and returns a lambda of type $\kwa{a \rightarrow a}$. If you give that lambda an argument $y$ of type $\kwa{a \rightarrow a}$ it will then return the maximum of $x$ and $y$. We illustrate this below by supplying the first input to $\kwa{max}$ and then binding the resulting function to the name $\kwa{mymax}$.
+
+\begin{lstlisting}[language=Haskell]
+Prelude> :type max
+max :: Ord a => a -> a -> a
+Prelude> let mymax = max 3
+Prelude> mymax 4
+4
+Prelude> mymax 2
+3
+\end{lstlisting}
+
+\noindent
+In light of this we can view function application in another way. Recall that function application is left associative, so the following are equivalent
+
+\begin{lstlisting}[language=Haskell]
+max 3 4
+(max 3) 4
+\end{lstlisting}
+
+\noindent
+It's now clear why function application has to be left associative: $\kwa{max~3~4}$ is \textit{really} $\kwa{(max~3)~4}$ which is the result of passing the argument $\kwa{4}$ to the lambda returned by $\kw{max~3}$. \\
+
+\noindent
+Until now we've done nothing to really warrant caring about lambdas or currying, but together with higher-order functions we can do some neat stuff. There are a slew of higher-order functions that you will use over and over in functional programming languages, so let's talk about some.
+
+\section{Filter}
+
+\noindent
+Intuitively, $\kwa{filter}$ takes a collection and produces a new collection containing only those elements which satisfy some predicate. Here is its signature.
+
+\begin{lstlisting}[language=Haskell]
+Prelude> :type filter
+map :: (a -> Bool) -> [a] -> [a]
+\end{lstlisting}
+
+\noindent
+Let's say we wanted the positive elements in a list. Our function for checking if an element is positive will be $\kwa{>}$, with the right-side argument fixed to 0 (so we've curried it into a function which checks if an input is greater than $0$).
+
+\begin{lstlisting}[language=Haskell]
+Prelude> filter (>0) [-2,-1,0,1,2,3]
+[1,2,3]
+\end{lstlisting}
+
+\noindent
+A palindrome is a word that is spelled the same forwards as it is backwards. If $\kwa{s}$ is a palindrome, then $\kwa{s~==~reverse s}$. If we pass that into $\kwa{filter}$ using a lambda, we can extract the palindromes in a list.
+
+\begin{lstlisting}[language=Haskell]
+Prelude> filter (\s -> s == reverse s) [``racecar'', ``lindsay'', ``carpet'', ``mum'']
+[``racecar'', ``mum'']
+\end{lstlisting}
+
+\noindent
+We might like to give that function a name so it can be used over and over again. We can achieve this by currying: we only supply the predicate to $\kwa{filter}$. This gives us a function which, when given a list, returns the sublist of items satisfying the predicate.
+
+\begin{lstlisting}[language=Haskell]
+palindromes xs = filter (\s -> s == reverse s) xs
+\end{lstlisting} 
+
+\noindent
+Here's something cool: because $\kwa{filter~ (\backslash  s \rightarrow s == reverse s)}$ is a function which takes a list as input and returns the sum, the $\kwa{xs}$ parameter is redundant. We can define $\kwa{palindromes}$ like this:
+
+\begin{lstlisting}[language=Haskell]
+palindromes = filter (\s -> s == reverse s)
+\end{lstlisting} 
+
+\noindent
+This way of defining functions is called ``point-free programming''. Some people think it is needlessly obscure and prefer the name ``pointless programming''. It's up to you.
+
+\section{Map}
+
+\noindent
+Intuitively $\kwa{map}$ takes a collection of values and produces a new collection by applying some function to each element. Your standard kind of $\kwa{map}$ applies to a list, so let's inspect the type signature for $\kwa{map}$.
+
+\begin{lstlisting}[language=Haskell]
+Prelude> :type map
+map :: (a -> b) -> [a] -> [b]
+\end{lstlisting}
+
+\noindent
+The first argument is a function from $\kwa{a \rightarrow b}$; the second argument is a list $\kwa{[a]}$; the result is a list $\kwa{[b]}$. So the output list doesn't have to have the same type as the input list. Here we map a list of strings to lengths.
+
+\begin{lstlisting}[language=Haskell]
+Prelude> map length [``higher'', ``order'', ``functions'']
+[6,5,9]
+\end{lstlisting}
+
+\noindent
+Here we make use of a lambda to fix the second parameter of the $\kwa{>}$ operator to check if each element is positive.
+
+\begin{lstlisting}[language=Haskell]
+Prelude> map (>0) [4,7,5]
+[True, True, True]
+\end{lstlisting}
+
+\noindent
+If we wanted to check if a list only contained positive numbers we could combine that with $\kwa{and}$.
+
+\begin{lstlisting}[language=Haskell]
+Prelude> and (map (>0) [4,7,5])
+True
+ \end{lstlisting}
+
+\section{Fold}
+
+\noindent
+The basic idea of a $\kwa{fold}$ is that you take a collection of items and a unit value. Starting with the unit value, you combine everything in the list using a function and produce a final value. For example, summing a list of numbers is a kind of $\kwa{fold}$ where, starting from 0, you repeatedly combine elements with $+$ to produce the final sum of the elements in the list. repeatedly combine elements with $+$ to produce a final value (the sum of the list). $\kwa{fold}$ is sometimes called $\kwa{reduce}$ in other languages. \\
+
+\noindent
+In Haskell there is a left fold ($\kwa{foldl}$) and a right fold ($\kwa{foldl}$). The difference is in how the combination happens: $\kwa{foldl}$ is left-to-right, while $\kwa{foldr}$ is right-to-left. Taking $\kwa{sum}$ on $\kwa{[1,2,3]}$ as our example, with unit value 0, a left-fold version would look like this:
+
+\noindent
+\begin{lstlisting}[language=Haskell]
+(((0 + 1) + 2) + 3)
+\end{lstlisting}
+
+\noindent
+A right-fold version would look like this:
+
+\noindent
+\begin{lstlisting}[language=Haskell]
+(1 + (2 + (3 + 0)))
+\end{lstlisting}
+
+\noindent
+Because $+$ is associative, that is $(a + b) + c = a + (b + c) = a + b + c$. the two folds will do the same thing. A lot of functions aren't associative, like subtraction, so the choice of $\kwa{foldl}$ or $\kwa{foldr}$ is important. \\
+
+\noindent
+First let's inspect the type signature of $\kwa{foldl}$.
+
+\begin{lstlisting}[language=Haskell]
+Prelude> :type foldl
+foldl :: (a -> b -> a) -> a -> [b] -> a
+\end{lstlisting}
+
+\noindent
+$\kwa{b}$ is the type of the elements is our list. $\kwa{a}$ is the type that your combination produces. The fourth/return type is $\kwa{a}$. The third argument is the list to be folded. The second argument is the unit value. The first argument is the combination function. It takes the folded value so far (type $\kwa{a}$) and the next element in the list (type $\kwa{b}$) and returns the value of combining those two things. \\
+
+\noindent
+With this in mind we can define $\kwa{sum}$ as a special case of $\kwa{foldl}$ by fixing the first two arguments. We're left with a function which takes a list as input and returns the sum.
+
+\begin{lstlisting}[language=Haskell]
+mysum xs = foldl (+) xs
+\end{lstlisting}
+
+\noindent
+Here's something cool: because $\kwa{foldl~ (+)}$ is a function which takes a list as input and returns the sum, we can simply define $\kwa{mysum}$ to be $\kwa{foldl~(+)}$.
+
+\begin{lstlisting}[language=Haskell]
+mysum = foldl (+)
+\end{lstlisting}
+
+\noindent
+This means the same as what we had before. This style of programming is called ``point-free'' programming. Some people think it is a bit too obscure and call it ``pointless'' programming. Up to you how you want to program.\\
+
+\noindent
+One way to think about the unit value of fold is as the base case of the combination. Another way is that it is the value that you should get when you fold an empty list. Here's a fold which takes a list of list and combines them into a single list $L$. The base case is an empty list; at each step we want to take the next list and combine it with $L$ by concatenation.
+
+\begin{lstlisting}[language=Haskell]
+Prelude> foldl (++) [] [[1,2,3], [4,5], [6], [], [7,8,9]]
+[1,2,3,4,5,6,7,8,9]
+\end{lstlisting}
+
+\noindent
+Sometimes it doesn't really make sense to have a unit value or fold on an empty list. For example, when taking the maximum of a list, what should the maximum of an empty list be? This isn't well-defined; there are versions of fold for non-empty lists called $\kwa{foldl1}$ and $\kwa{foldr1}$. They're the same except they don't take a unit value. $\kwa{foldl1}$ just takes the first element of the list as your ``unit value''.
+
+\begin{lstlisting}[language=Haskell]
+Prelude> foldl1 max [1,2,3,4]
+4
+\end{lstlisting}
+
+\noindent
+The beauty of these higher-order functions is in how you combine them. Here's how we can use $\kwa{map}$ and $\kwa{fold}$ to find the size of the longest string in a list.
+
+\begin{lstlisting}[language=Haskell]
+Prelude> foldl1 max (map (\s -> length s) [``glass'', ``gypsum'', ``ash''])
+6
+\end{lstlisting}
+
+\noindent
+Your intuition might tell you that this is inefficient: we construct a list of lengths, then we do a second pass to find the maximum. It would be more efficient to iterate over each string, check its length, then take the maximum of that with our current best. Because of lazy evaluation, this is exactly what happens. \\
+
+\noindent
+To illustrate the difference between $\kwa{foldl}$ and $\kwa{foldr}$ let's try using subtraction as our combination function.
+
+\begin{lstlisting}[language=Haskell]
+Prelude> foldl (-) 0 [1,2,3]
+-6
+Prelude> foldr (-) 0 [1,2,3]
+2
+\end{lstlisting}
+
+\noindent
+If we expand the second we see why we get $2$:
+
+\begin{lstlisting}[language=Haskell]
+(1 - (2 - (3 - 0)))
+(1 - (2 - 3))
+(1 - (-1))
+2
+\end{lstlisting}
+
+\section{Zip}
+
+\noindent
+$\kwa{Zip}$ takes two lists and returns the list of pairs.
+
+\begin{lstlisting}[language=Haskell]
+Prelude> zip [1,2,3] [``higher'', ``order'', ``functions'', ``when?'']
+[(1, ``higher''), (2, ``order''), (3, ``functions'')]
+\end{lstlisting}
+
+\noindent
+If the  input lists are of differing length, the output list is only as long as the shorter of the two. \\
+
+\noindent
+A more general function is $\kwa{zipWith}$ which combines two lists into a third by applying a function pairwise. $\kwa{zip}$ is the same as performing $\kwa{zipWith}$ using the function which pairs its inputs.
+
+\begin{lstlisting}[language=Haskell]
+Prelude> zipWith (\x y -> (x,y)) [1,2] [``haskell'', ``prolog'']
+[(1, ``haskell''), (2, ``prolog'')]
+\end{lstlisting}
+
+\noindent
+Here's another example which takes two lists and produces a third by taking the pairwise maximum of the numbers.
+
+\begin{lstlisting}[language=Haskell]
+Prelude> zipWith max [1,4, 0] [4, 2, 4]
+[4,4,4]
+\end{lstlisting}
+
+\section{List Comprehensions}
+
+\noindent
+There are useful way to build lists in Haskell. The first is ranges. Here is the list of all natural numbers:
+
+\begin{lstlisting}[language=Haskell]
+Prelude> nats = [0, 1..]
+\end{lstlisting}
+
+\noindent
+This is an infinite list. Because of lazy evaluation, we never try to construct the list in its entirety; only the portion which we use. You can think of an infinite list as being a function which generates successive elements in the sequence. To actually use it we can use e.g. $\kwa{take}$.
+
+\begin{lstlisting}[language=Haskell]
+Prelude> take 3 nats
+[0,1,2]
+\end{lstlisting}
+
+\noindent
+Be careful not to e.g. try and take the last element $\kwa{last~nats}$; there isn't one, so it will recurse forever. By specifying different starting points in the range we get a different list. Here are the negative numbers:
+
+\begin{lstlisting}[language=Haskell]
+Prelude> take 3 [0, -1 ..]
+[0, -1, -2]
+\end{lstlisting}
+
+\noindent
+List comprehensions let us build a list of elements satisfying some predicate (a bit like $\kwa{filter}$). \\
+
+\noindent
+Here's a neat use of infinite lists. We're going to find the 1000th prime number. Let's say we had a function $\kwa{isPrime}$ which could determine if a number was prime. To find the 1000th prime number we define the list of all prime numbers with a list comprehension and then ask for the number at index 1000.
+
+\begin{lstlisting}[language=Haskell]
+Prelude> let primes = [x | x <- [0..], isPrime x]
+Prelude> primes !! 1000
+7927
+\end{lstlisting}
+
+\noindent
+Bonus: here's an example of how you might write $\kwa{isPrime}$.
+
+\begin{lstlisting}[language=Haskell]
+
+-- Return true if a divides b (that is k*a = b for some k).
+divides :: Integer -> Integer -> Bool
+divides a b = b `mod` a == 0
+
+-- Return True if the input is prime, or False otherwise.
+isPrime :: Integer -> Bool
+isPrime n
+  | n == 2    = True
+  | n == 1    = False
+  | otherwise = isPrime' n 2
+  where isPrime' :: Integer -> Integer -> Bool
+        isPrime' n curr
+          | curr == 2 = if 2 `divides` n
+                          then False
+                          else isPrime' n 3
+          | otherwise = if curr > (ceiling (sqrt (fromIntegral n)))
+                          then True
+                        else if curr `divides` n
+                          then False
+                        else
+                          isPrime' n (curr+2)
+\end{lstlisting}
+
+
+\end{document}
+
+
+
+
+
+
+
+
+
