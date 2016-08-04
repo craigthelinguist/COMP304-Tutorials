@@ -142,7 +142,7 @@ If we leave off the inequality check, $\kwa{allPairs}$ will contain words paired
 Next we can filter the list of pairs by only keeping those words which are semordnilaps. Our predicate will be the function which operates on a pair of strings and returns true if the reverse of one equals the other.
 
 \begin{lstlisting}[language=Haskell]
-hasSemordnilap strs =
+longestSemordnilap strs =
 	let allPairs = [(x,y) | x $\leftarrow$ strs, y $\leftarrow$ strs, x /= y]
 	     semords = filter (\(x,y) -> reverse x == y) allPairs
 \end{lstlisting}
