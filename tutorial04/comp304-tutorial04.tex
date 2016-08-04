@@ -1,0 +1,229 @@
+\documentclass[a4paper,12pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath}
+\usepackage[english]{babel}
+\usepackage{listings}
+
+\lstset{tabsize=3, basicstyle=\ttfamily\small, commentstyle=\itshape\rmfamily, numbers=left, numberstyle=\tiny, language=java,moredelim=[il][\sffamily]{?},mathescape=true,showspaces=false,showstringspaces=false,columns=fullflexible,xleftmargin=5pt,escapeinside={(@}{@)}, morekeywords=[1]{let,if,then,else}}
+\lstloadlanguages{Java, Haskell}
+
+% Key word, key word adjacent.
+\newcommand{\kwa}[1]{\mathtt{#1}}
+\newcommand{\kw}[1]{\kwa{#1}~}
+
+\begin{document}
+
+\title{COMP304 Tutorial 4 \\ 05/08/2016}
+\date{}
+\maketitle
+
+\section{Pattern-Matching}
+
+\noindent
+Where possible, favour pattern-matching over conditionals or guards. For example, if you want to check the form of a list, you should use pattern-matching. Favour this:
+
+\begin{lstlisting}[language=Haskell]
+count _ [] = 0
+count x (y:ys)
+	| x == y			= 1 + count x ys
+	| otherwise	= count x ys
+\end{lstlisting}
+
+\noindent
+Over this:
+
+\begin{lstlisting}[language=Haskell]
+count x ys = if null ys then 0
+             else if x == (head ys) then 1 + count x (tail ys)
+             else count x (tail ys)
+\end{lstlisting}
+
+\section{Type Signatures}
+
+\noindent
+Though Haskell doesn't need them, it's a good idea to write type signatures because they serve as documentation for how a function should be used. What's wrong with this signature?
+
+\begin{lstlisting}[language=Haskell]
+count :: Int -> [Int] -> Int
+\end{lstlisting}
+
+\noindent
+It means our count function only works for lists of integers, which isn't ideal because counting up the occurrences of a value is something you can do generally to anything type for which equality is defined. \\
+
+\noindent
+Sometimes it's useful to leave off the type signature, write the function, and then check its signature in $\kwa{GHCi}$. Type inference will tell us the most general signature.
+
+\begin{lstlisting}[language=Haskell]
+*Main> :type count
+count :: (Eq a1, Num a) => a1 -> [a1] -> a
+\end{lstlisting}
+
+\noindent
+Type inference says that $\kwa{count}$ can return any numeric type; so it could return $\sqrt 2$. And while that's technically correct, since we're just counting things the result should really just be a whole number i.e. an Integer. So a more sensible type signature would be the following:
+
+\begin{lstlisting}[language=Haskell]
+count :: Eq a => a -> [a] -> Int
+\end{lstlisting}
+
+\noindent
+Looking at what type inference says is useful but if the most general type is \textit{too} general we might have to change it a bit.
+
+
+\section{Requirements}
+
+\noindent
+Be careful reading assignment requirements. For example, $\kwa{allPos}$ should return the indices in which an item occurs, indexed from 1. So for example, $\kwa{allPos 1 [1]}$ should return $\kwa{[1]}$.\\
+
+\noindent
+If the assignment gives some sample inputs and outputs you should include them in your test.
+
+\section{Lazy Evaluation}
+
+\noindent
+Sometimes the way you would write a function in a lazily-evaluated language would be inefficient in a strictly-evaluated language. To wit, let's say you wanted to find out if any string in a list had more than 5 characters. \\
+
+\noindent
+You could map each string to whether they're greater than length 4. Then you could check if any of them are true. We'll do this by passing a lambda to $\kwa{map}$.
+
+\begin{lstlisting}[language=Haskell]
+Prelude> let strings = ["hello", "how", "are", "you", "my", "mate"]
+Prelude> strings
+["hello","how","are","you","my","mate"]
+Prelude> map (\s -> length s > 4) strings
+[True,False,False,False,False,False]
+Prelude> or (map (\s -> length s > 4) strings)
+True
+\end{lstlisting}
+
+\noindent
+In a strictly-evaluated, imperative language you would loop over each $\kwa{s}$ and check if any of them satisfies $\kwa{length~s  > 4}$. On first glance, the version might seem inefficient: you must first construct the list of booleans, then check if any is true. \\
+
+\noindent
+In a lazily-evaluated language what happens is that $\kwa{map}$ generates the first element $\kwa{True}$, then passes it to $\kwa{or}$, which then knows enough to be able to evaluate to $\kwa{True}$; so the intermediate list of booleans is never fully constructed.\\
+
+\section{Lazy Evaluation 2}
+
+\noindent
+Will the following recurse forever?
+\begin{lstlisting}[language=Haskell]
+Prelude> let l = [1..]
+Prelude> if length l == 0 then ``empty'' else ``not empty''
+\end{lstlisting}
+
+\noindent
+You may think that because of lazy evaluation, $\kwa{length l == 0}$ only checks as much of the list as you would need to establish that it is non-empty. This is not the case: in order to apply $\kwa{==}$, we need to know what $\kwa{length~l}$ is. In order to evaluate $\kwa{length~l}$ we must traverse to the end of the list. Lazy evaluation is not ``smart'' in the sense that it will figure out the best way to evaluate an expression. \\
+
+\noindent
+The way to check if a list is empty would be to pattern-match it against the empty-list, which is exactly what $\kwa{null~xs}$ does.
+
+\begin{lstlisting}[language=Haskell]
+Prelude> if null [1..] then ``empty'' else ``not empty''
+``not empty''
+\end{lstlisting}
+
+\section{Higher-Order Functions}
+
+\noindent
+A semordnilap is a pair of words that spell each other when reversed: (``swap'', ``paws'') is a semordnnilap; so is (``stressed'', ``dessert'').  Given a list of strings, return the longest semordnilap. We'll solve this using a mixture of higher-order functions and list comprehensions. \\
+
+\noindent
+First we want all the pairs of words in the list, which can be done with a list comprehension.
+
+\begin{lstlisting}[language=Haskell]
+longestSemord strs =
+	let allPairs = [(x,y) | x $\leftarrow$ strs, y $\leftarrow$ strs, x /= y]
+\end{lstlisting}
+
+\noindent
+If we leave off the inequality check, $\kwa{allPairs}$ will contain words paired with themselves (so any palindrome will be considered a semordnilap with itself).
+
+\noindent
+Next we can filter the list of pairs by only keeping those words which are semordnilaps. Our predicate will be the function which operates on a pair of strings and returns true if the reverse of one equals the other.
+
+\begin{lstlisting}[language=Haskell]
+hasSemordnilap strs =
+	let allPairs = [(x,y) | x $\leftarrow$ strs, y $\leftarrow$ strs, x /= y]
+	     semords = filter (\(x,y) -> reverse x == y) allPairs
+\end{lstlisting}
+
+\noindent
+To find the longest semordnilap we can use a fold. Our combination function will take the longest semordnilap so far, compare the length of one of its words to the next one in the list, and take the longer semodrnilap. Note that we are comparing pairs of words.
+
+\noindent
+Since finding the longest semordnilap in an empty list doesn't make sense, we'll use $\kwa{foldl1}$ which operates on non-empty lists; therefore we don't have to pass a unit value. \\
+
+\noindent
+To make things more clear we'll use a let-binding to give a name to that combination function.
+
+\begin{lstlisting}[language=Haskell]
+longestSemord strs =
+	let allPairs = [(x,y) | x $\leftarrow$ strs, y $\leftarrow$ strs, x /= y]
+        semords  = filter ($\\$(x,y) -> reverse x == y) allPairs
+        longer (a,b) (c,d) = if length a > length c then (a,b) else (c,d)
+    in foldl1 longer semords
+\end{lstlisting}
+
+\noindent
+Warning: make sure you line up all the assignments in the $\kwa{let}$ expression, and make sure you line up $\kwa{let}$ and $\kwa{in}$. Do NOT mix tabs and spaces or $\kwa{GHCi}$ (probably) won't be able to parse it. \\
+
+\noindent
+Now we can find the longest semordnilap:
+
+\begin{lstlisting}[language=Haskell]
+*Main> longestSemord ["stressed", "desserts", "deliver", "reviled", "hello"]
+("desserts","stressed")
+\end{lstlisting}
+
+\section{Algebraic Data Types}
+
+\noindent
+A list has two forms: the empty list $\kwa{[~]}$ or an element prepended to a list $\kwa{x:xs}$. In the language of algebraic data-types, we say that list has two constructors. In fact, we can define a list as an algebraic data-type like so:
+
+\begin{lstlisting}[language=Haskell]
+data Seq a = Nil | Cons a (Seq a)
+\end{lstlisting}
+
+\noindent
+This is really what a Haskell list $\bf{is}$, but a Haskell list a built-in special notation for these things: $[~]$ is the same as $\kwa{EmptyList}$: $\kwa{x:xs}$ is the same as $\kwa{Cons~x~s}$. A list like $\kwa{[1,2,3]}$ is shorthand for $\kwa{1:2:3:[~]}$. If we passed in $\kwa{1:2:3:[~]}$ to a function that pattern-matches on the head with $\kwa{x:xs}$, what we're doing is binding $\kwa{x}$ to $1$ and binding $\kwa{xs}$ to $2:3:[~]$. \\
+
+\noindent
+This is called constructing and destructing; we're able to pull apart and construct any list by appealing to its two constructors, $\kwa{Nil}$ and $\kwa{Cons}$.\\
+
+\noindent
+We can rewrite the usual $\kwa{List}$ functions using our own algebraic definition of a list.
+
+\begin{lstlisting}[language=Haskell]
+count :: Eq a => a -> Seq a -> Int
+count _ Seq = 0
+count x (Cons y ys)
+	| x == y			= 1 + count ys
+	| otherwise	= count ys 
+\end{lstlisting}
+
+\noindent
+In this case we're pattern-matching on the two different forms of a $\kwa{Seq}$; we're pattern-matching in exactly the same way that we pattern-match on a list. \\
+
+\noindent
+Note that we need to give names to $\kwa{Nil}$ and $\kwa{Cons}$ in our definition of $\kwa{Seq}$ to make it clear to Haskell when we're pattern-matching on an algebraic data-type. \\
+
+\noindent
+If we want to construct a $\kwa{Seq}$ we can do it like this: 
+
+\begin{lstlisting}[language=Haskell]
+*Main> let s = Cons 3 (Cons 3 (Cons 5 Nil))
+*Main> count 3 s
+2
+\end{lstlisting}
+
+
+\end{document}
+
+
+
+
+
+
+
+
+
