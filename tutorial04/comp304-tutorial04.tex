@@ -166,30 +166,24 @@ If we want to construct a $\kwa{Seq}$ we can do it like this:
 \section{Higher-Order Functions}
 
 \noindent
-A semordnilap is a pair of words that spell each other when reversed: (``swap'', ``paws'') is a semordnnilap; so is (``stressed'', ``dessert'').  Given a list of strings, return the longest semordnilap. We'll solve this using a mixture of higher-order functions and list comprehensions. \\
+A semordnilap is a pair of words that spell each other when reversed: (``swap'', ``paws'') is a semordnnilap; so is (``stressed'', ``dessert'').  Given a list of strings, return the longest semordnilap. We'll solve this using a mixture of higher-order functions and list comprehensions.\\
 
 \noindent
-First we want all the pairs of words in the list, which can be done with a list comprehension.
+An algorithm for this is: find the collection of semordsnilaps in the list and then find the longest. \\
+
+\noindent
+First we find the collection of semordnilaps in the list. We can construct all (distinct) pairs of words in the list which form a semordnilap using a list comprehension.
 
 \begin{lstlisting}[language=Haskell]
 longestSemord strs =
-	let allPairs = [(x,y) | x $\leftarrow$ strs, y $\leftarrow$ strs, x /= y]
+	let allPairs = [(x,y) | x $\leftarrow$ strs, y $\leftarrow$ strs, x /= y, reverse x == y]
 \end{lstlisting}
 
 \noindent
-If we leave off the inequality check, $\kwa{allPairs}$ will contain words paired with themselves (so any palindrome will be considered a semordnilap with itself).
+If we leave off the inequality check, $\kwa{allPairs}$ will contain words paired with themselves (so any palindrome will be considered a semordnilap with itself). \\
 
 \noindent
-Next we can filter the list of pairs by only keeping those words which are semordnilaps. Our predicate will be the function which operates on a pair of strings and returns true if the reverse of one equals the other.
-
-\begin{lstlisting}[language=Haskell]
-longestSemordnilap strs =
-	let allPairs = [(x,y) | x $\leftarrow$ strs, y $\leftarrow$ strs, x /= y]
-	     semords = filter (\(x,y) -> reverse x == y) allPairs
-\end{lstlisting}
-
-\noindent
-To find the longest semordnilap we can use a fold. Our combination function will take the longest semordnilap so far, compare the length of one of its words to the next one in the list, and take the longer semodrnilap. Note that we are comparing pairs of words.
+To find the longest semordnilap we can use a fold. Our combination function will take the longest semordnilap so far, compare the length of one of its words to the next one in the list, and take the longer semodrnilap. Note that we are comparing pairs of words. \\
 
 \noindent
 Since finding the longest semordnilap in an empty list doesn't make sense, we'll use $\kwa{foldl1}$ which operates on non-empty lists; therefore we don't have to pass a unit value. \\
@@ -199,8 +193,7 @@ To make things more clear we'll use a let-binding to give a name to that combina
 
 \begin{lstlisting}[language=Haskell]
 longestSemord strs =
-	let allPairs = [(x,y) | x $\leftarrow$ strs, y $\leftarrow$ strs, x /= y]
-        semords  = filter ($\\$(x,y) -> reverse x == y) allPairs
+	let allPairs = [(x,y) | x $\leftarrow$ strs, y $\leftarrow$ strs, x /= y, reverse x == y]
         longer (a,b) (c,d) = if length a > length c then (a,b) else (c,d)
     in foldl1 longer semords
 \end{lstlisting}
