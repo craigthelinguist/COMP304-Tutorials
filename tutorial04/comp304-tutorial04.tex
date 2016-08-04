@@ -49,7 +49,7 @@ count :: Int -> [Int] -> Int
 \end{lstlisting}
 
 \noindent
-It means our count function only works for lists of integers, which isn't ideal because counting up the occurrences of a value is something you can do generally to anything type for which equality is defined. \\
+It means our count function only works for lists of integers, which isn't ideal because counting up the occurrences of a value is something you can do generally to any type on which equality is defined. \\
 
 \noindent
 Sometimes it's useful to leave off the type signature, write the function, and then check its signature in $\kwa{GHCi}$. Type inference will tell us the most general signature.
@@ -60,14 +60,14 @@ count :: (Eq a1, Num a) => a1 -> [a1] -> a
 \end{lstlisting}
 
 \noindent
-Type inference says that $\kwa{count}$ can return any numeric type; so it could return $\sqrt 2$. And while that's technically correct, since we're just counting things the result should really just be a whole number i.e. an Integer. So a more sensible type signature would be the following:
+Type inference says that $\kwa{count}$ can return any numeric type; so it could return $\sqrt 2$. And while that's technically correct, since we're counting things the result should really just be a whole number i.e. an Integer. So a more sensible type signature would be the following:
 
 \begin{lstlisting}[language=Haskell]
 count :: Eq a => a -> [a] -> Int
 \end{lstlisting}
 
 \noindent
-Looking at what type inference says is useful but if the most general type is \textit{too} general we might have to change it a bit.
+Looking at what type inference says is useful, but if the most general type is \textit{too} general we might have to change it a bit.
 
 
 \section{Requirements}
@@ -132,7 +132,7 @@ data Seq a = Nil | Cons a (Seq a)
 \end{lstlisting}
 
 \noindent
-This is really what a Haskell list $\bf{is}$, but a Haskell list a built-in special notation for these things: $[~]$ is the same as $\kwa{EmptyList}$: $\kwa{x:xs}$ is the same as $\kwa{Cons~x~s}$. A list like $\kwa{[1,2,3]}$ is shorthand for $\kwa{1:2:3:[~]}$. If we passed in $\kwa{1:2:3:[~]}$ to a function that pattern-matches on the head with $\kwa{x:xs}$, what we're doing is binding $\kwa{x}$ to $1$ and binding $\kwa{xs}$ to $2:3:[~]$. \\
+This is really what a Haskell list $\bf{is}$, but a Haskell list a built-in special notation for these things: $[~]$ is the same as $\kwa{EmptyList}$. $\kwa{x:xs}$ is the same as $\kwa{Cons~x~s}$. A list like $\kwa{[1,2,3]}$ is shorthand for $\kwa{1:2:3:[~]}$. If we passed in $\kwa{1:2:3:[~]}$ to a function that pattern-matches on the head with $\kwa{x:xs}$, what we're doing is binding $\kwa{x}$ to $1$ and binding $\kwa{xs}$ to $2:3:[~]$. \\
 
 \noindent
 This is called constructing and destructing; we're able to pull apart and construct any list by appealing to its two constructors, $\kwa{Nil}$ and $\kwa{Cons}$.\\
@@ -161,6 +161,40 @@ If we want to construct a $\kwa{Seq}$ we can do it like this:
 *Main> let s = Cons 3 (Cons 3 (Cons 5 Nil))
 *Main> count 3 s
 2
+\end{lstlisting}
+
+\section{Binary Tree}
+
+We can define a binary tree as an algebraic data type.
+
+
+\begin{lstlisting}[language=Haskell]
+data Tree a = Nil | Node a (Tree a) (Tree a)
+  deriving (Show)
+\end{lstlisting}
+
+\noindent
+The second line says $\kwa{Tree}$ is in the $\kwa{Show}$ typeclass, which means it can be printed (a bit like $\kwa{toString}$ in Java). \\
+
+\noindent
+To manually build a tree we can do this:
+
+\begin{lstlisting}[language=Haskell]
+example = Node 5 (Node 2 Nil (Node 1 Nil Nil)) (Node 6 Nil Nil)
+\end{lstlisting}
+
+\noindent
+A function to figure out the size of a tree would recurse through the tree adding 1 at each node. We want to pattern-match on the two different forms of the tree. An empty tree has size zero.
+
+\begin{lstlisting}[language=Haskell]
+sizeTree Nil = 0
+\end{lstlisting}
+
+\noindent
+A non-empty tree has size one, plus the size of its subtrees. Since we don't care about what the tree at this point is actually storing we pattern-match it with a wildcard, which says ``I don't really care about its value''.
+
+\begin{lstlisting}[language=Haskell]
+ sizeTree (Node _ left right) = 1 + (sizeTree left) + (sizeTree right)
 \end{lstlisting}
 
 \section{Higher-Order Functions}
