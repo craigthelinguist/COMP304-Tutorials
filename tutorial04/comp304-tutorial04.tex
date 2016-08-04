@@ -122,6 +122,47 @@ Prelude> if null [1..] then ``empty'' else ``not empty''
 ``not empty''
 \end{lstlisting}
 
+\section{Algebraic Data Types}
+
+\noindent
+A list has two forms: the empty list $\kwa{[~]}$ or an element prepended to a list $\kwa{x:xs}$. In the language of algebraic data-types, we say that list has two constructors. In fact, we can define a list as an algebraic data-type like so:
+
+\begin{lstlisting}[language=Haskell]
+data Seq a = Nil | Cons a (Seq a)
+\end{lstlisting}
+
+\noindent
+This is really what a Haskell list $\bf{is}$, but a Haskell list a built-in special notation for these things: $[~]$ is the same as $\kwa{EmptyList}$: $\kwa{x:xs}$ is the same as $\kwa{Cons~x~s}$. A list like $\kwa{[1,2,3]}$ is shorthand for $\kwa{1:2:3:[~]}$. If we passed in $\kwa{1:2:3:[~]}$ to a function that pattern-matches on the head with $\kwa{x:xs}$, what we're doing is binding $\kwa{x}$ to $1$ and binding $\kwa{xs}$ to $2:3:[~]$. \\
+
+\noindent
+This is called constructing and destructing; we're able to pull apart and construct any list by appealing to its two constructors, $\kwa{Nil}$ and $\kwa{Cons}$.\\
+
+\noindent
+We can rewrite the usual $\kwa{List}$ functions using our own algebraic definition of a list.
+
+\begin{lstlisting}[language=Haskell]
+count :: Eq a => a -> Seq a -> Int
+count _ Seq = 0
+count x (Cons y ys)
+	| x == y			= 1 + count ys
+	| otherwise	= count ys 
+\end{lstlisting}
+
+\noindent
+In this case we're pattern-matching on the two different forms of a $\kwa{Seq}$; we're pattern-matching in exactly the same way that we pattern-match on a list. \\
+
+\noindent
+Note that we need to give names to $\kwa{Nil}$ and $\kwa{Cons}$ in our definition of $\kwa{Seq}$ to make it clear to Haskell when we're pattern-matching on an algebraic data-type. \\
+
+\noindent
+If we want to construct a $\kwa{Seq}$ we can do it like this: 
+
+\begin{lstlisting}[language=Haskell]
+*Main> let s = Cons 3 (Cons 3 (Cons 5 Nil))
+*Main> count 3 s
+2
+\end{lstlisting}
+
 \section{Higher-Order Functions}
 
 \noindent
@@ -173,47 +214,6 @@ Now we can find the longest semordnilap:
 \begin{lstlisting}[language=Haskell]
 *Main> longestSemord ["stressed", "desserts", "deliver", "reviled", "hello"]
 ("desserts","stressed")
-\end{lstlisting}
-
-\section{Algebraic Data Types}
-
-\noindent
-A list has two forms: the empty list $\kwa{[~]}$ or an element prepended to a list $\kwa{x:xs}$. In the language of algebraic data-types, we say that list has two constructors. In fact, we can define a list as an algebraic data-type like so:
-
-\begin{lstlisting}[language=Haskell]
-data Seq a = Nil | Cons a (Seq a)
-\end{lstlisting}
-
-\noindent
-This is really what a Haskell list $\bf{is}$, but a Haskell list a built-in special notation for these things: $[~]$ is the same as $\kwa{EmptyList}$: $\kwa{x:xs}$ is the same as $\kwa{Cons~x~s}$. A list like $\kwa{[1,2,3]}$ is shorthand for $\kwa{1:2:3:[~]}$. If we passed in $\kwa{1:2:3:[~]}$ to a function that pattern-matches on the head with $\kwa{x:xs}$, what we're doing is binding $\kwa{x}$ to $1$ and binding $\kwa{xs}$ to $2:3:[~]$. \\
-
-\noindent
-This is called constructing and destructing; we're able to pull apart and construct any list by appealing to its two constructors, $\kwa{Nil}$ and $\kwa{Cons}$.\\
-
-\noindent
-We can rewrite the usual $\kwa{List}$ functions using our own algebraic definition of a list.
-
-\begin{lstlisting}[language=Haskell]
-count :: Eq a => a -> Seq a -> Int
-count _ Seq = 0
-count x (Cons y ys)
-	| x == y			= 1 + count ys
-	| otherwise	= count ys 
-\end{lstlisting}
-
-\noindent
-In this case we're pattern-matching on the two different forms of a $\kwa{Seq}$; we're pattern-matching in exactly the same way that we pattern-match on a list. \\
-
-\noindent
-Note that we need to give names to $\kwa{Nil}$ and $\kwa{Cons}$ in our definition of $\kwa{Seq}$ to make it clear to Haskell when we're pattern-matching on an algebraic data-type. \\
-
-\noindent
-If we want to construct a $\kwa{Seq}$ we can do it like this: 
-
-\begin{lstlisting}[language=Haskell]
-*Main> let s = Cons 3 (Cons 3 (Cons 5 Nil))
-*Main> count 3 s
-2
 \end{lstlisting}
 
 
