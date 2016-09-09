@@ -14,7 +14,7 @@
 
 \begin{document}
 
-\title{COMP304 Tutorial 4 \\ 09/09/2016}
+\title{COMP304 Tutorial 7 \\ 09/09/2016}
 \date{}
 \maketitle
 
@@ -23,7 +23,7 @@
 There are several implementations of Prolog, such as GNU Prolog and SWI-Prolog. SWI-Prolog would probably be the best to use, as it comes with a lot of built-in predicates and an interactive interpreter. We'll run our programs by writing them in $\kwa{.pl}$ files and loading them into SWI-Prolog. \\
 
 \noindent
-Note: $\kwa{.pl}$ is often used as an extension for Perl files (another programming language), so your text editor might try to do Perl highlighting instead of Prolog highlighting. If you're using Gedit you can fix this by going View $\rightarrow$ Highlight Mode $\rightarrow$ Sources $\rightarrow$ Perl.
+Note: $\kwa{.pl}$ is often used as an extension for Perl files (another programming language), so your text editor might try to do Perl highlighting instead of Prolog highlighting. If you're using Gedit you can fix this by going View $\rightarrow$ Highlight Mode $\rightarrow$ Sources $\rightarrow$ Perl. \\
 
 \noindent
 We'll add some facts to our file.
@@ -38,11 +38,14 @@ pink(flamingo).
 \end{lstlisting}
 
 \noindent
-We can note a few things already. The fullstops are important! They mark the end of predicates (a bit like semi-colons in imperative languages). Also, whitespace inside brackets is significant. The atom ` tui` is not the same as `tui'. From inside SWI-Prolog we can load the file and put forward some queries. We do that like so:
+The fullstops are important! They mark the end of predicat definitions (a bit like how semi-colons mark the end of statements in imperative languages). Also, whitespace inside brackets is significant. The atom ` tui' is not the same as `tui'.\\
+
+\noindent
+From inside SWI-Prolog we can load the file and put forward some queries:
 
 \begin{lstlisting}
 $?-$ [birds].
-\% birds compiled 0.00 sec, 5 clauses
+% birds compiled 0.00 sec, 5 clauses
 true.
 
 $?-$ bird(sparrow).
@@ -58,7 +61,7 @@ false.
 \end{lstlisting}
 
 \noindent
-At its heart, Prolog is a theorem-prover. It tries to show things are true. If it can't, it considers it to be false. We can ask Prolog for things which are birds, by asking it for $\kwa{bird}(X)$. $X$ is an unbound variable. These start with upper-case letters. It will then try to bind values to $X$, which satisfy the predicate $\kwa{bird}$.
+At its heart, Prolog is a theorem-prover. It proves a predicate is true by constructing an example which satisfies that predicate. If it can't, it considers it to be false. We can ask Prolog for things which are birds by asking it for $\kwa{bird}(X)$. $X$ is an unbound/free variable (these start with upper-case letters or an underscore). It will then try to find values to $X$, which satisfy the predicate $\kwa{bird \slash 1}$.
 
 \begin{lstlisting}
 $?-$ bird(X)
@@ -68,7 +71,7 @@ X = sparrow.
 \end{lstlisting}
 
 \noindent
-Each solution will be listed one-by-one. To see the next solution, you have to enter ``;''. The solutions are terminated in a full-stop (if you want to terminate early, you can enter a full-stop instead of a semi-colon). \\
+Each solution will be listed one-by-one, in order that you specified in the file (because Prolog works top-to-bottom). To see the next solution, you have to enter ``;''. The solutions are terminated in a full-stop (if you want to terminate early, you can enter a full-stop instead of a semi-colon). \\
 
 \noindent
 We can ask for something which is pink, or ask for something which is flightless.
@@ -81,7 +84,7 @@ X = kiwi.
 \end{lstlisting}
 
 \noindent
-If we want to ask for something which is pink OR flightless, we can use the semi-colon to join the two predicates.
+If we want to ask for something which is pink OR flightless, we can use a semi-colon to join the two.
 
 \begin{lstlisting}
 $?-$ pink(X); flightless(X).
@@ -90,49 +93,19 @@ X = flamingo.
 \end{lstlisting}
 
 \noindent
-In the same way, we can use a comma to join two predicates and ask if something is both pink AND flightless, Prolog tells us no.
+We can use a comma to ask if something is both pink AND flightless. Prolog tells us no.
 
 \begin{lstlisting}
 $?-$ pink(X), flightless(X).
 false.
 \end{lstlisting}
 
-\noindent
-If we want to check if something is false, we use the $\kwa{not}$ predicate (there are other ways which help manipulate the search-tree, but $\kwa{not}$ will do for now).
-
-\begin{lstlisting}
-$?-$ not(pink(X)).
-false.
-\end{lstlisting}
-
-\noindent
-Does this seem weird? Sparrows aren't pink, so you might think Prolog could bind $X$ to $\kwa{sparrow}$. Recall what negation means in Prolog: not $P$ is true iff $P$ cannot be proven true. Because we can prove $\kwa{pink(X)}$, that means $\kwa{not(pink(X))}$ is false.
-
-\noindent
-We can also feed a compound predicate into $\kwa{not}$. If want to check if not (flightless $\land$ pink) is ``false'' you might try this:
-
-\begin{lstlisting}
-$?-$ not(flightless(X), pink(X)).
-ERROR: Undefined procedure: not/2
-ERROR:     However, there are definitions for:
-ERROR:         not/1
-false.
-\end{lstlisting}
-
-\noindent
-Prolog is trying to pass in $\kwa{flightless(X)}$ and $\kwa{pink(X)}$ as two separate predicates to $\kwa{not}$. The comma here means ``separate the predicate arguments''. If we want to pass them in as a single, conjunct predicate, we need an extra pair of brackets around them.
-
-\begin{lstlisting}
-$?-$ not((flightless(X), pink(X)))
-true.
-\end{lstlisting}
-
-\noindent
-This is the expected result, because Prolog cannot prove that anything is flightless and pink.
-
 \section{Predicates \& Relations}
 
-Recall that an $m-ary$ relation is a set of tuples of size $m$ (over some set). For example, $\{ (2,0), (1,2), (2,3) \}$ is a relation over pairs of numbers. Prolog predicates are the same. We specify predicates by their name and arity. For example:
+Recall that an m-ary relation is a set of tuples of size m (over some sets). For example, $\{ (2,0), (1,2), (2,3) \}$ is a relation over pairs of numbers. This is the same as a Prolog predicate. In the previous example, $\kwa{bird}$ is a 1-ary (unary) relation over atoms. Its members are $\kwa{ kiwi,~tui,~sparrow,~flamingo }$. When we asked Prolog for $\kwa{bird}(X)$ it tried to answer by producing a member in set. \\
+
+\noindent
+Here's an example of a 2-ary (binary) predicate.
 
 \begin{lstlisting}
 mother(mary, amber).
@@ -142,14 +115,14 @@ mother(tuhi, mary).
 \end{lstlisting}
 
 \noindent
-$\kwa{mother \slash 2}$ is a 2-ary predicate/relation. The functor is $\kwa{mother}$ and the arity is $2$. If we wrote this using mathematical notation, we can define the relation as the following set: $\kwa{ \{ (mary, amber), (mary, rachel), (mary, aj), (mary, tuhi) \} }$. \\
+$\kwa{mother \slash 2}$ is a 2-ary predicate (Prolog predicates are always described by their name and arity). The members in the $\kwa{mother}$ relation are
+$\kwa{ \{(mary, amber), (mary, rachel), (mary, aj) }$\\$\kwa{ (tuhi, mary) \} }$ \\
 
 \noindent
 Some notes and cautionaries.
 \begin{enumerate}
 	\item The order in pairs is significant. $\kwa{mother(mary, aj)}$ is NOT the same as $\kwa{mother(aj, mary)}$.
 	\item Beware of spelling mistakes! If you type in $\kwa{mohter(aj, mary)}$, it will register a new relation $\kwa{mohter}$. It doesn't know you made a typo.
-	\item The word ``functor'' means something different in category theory and Haskell, so if you google for ``functor'' while looking to learn Prolog you might get some confusing results.
 \end{enumerate}
 
 \noindent
@@ -171,13 +144,13 @@ Y = mary.
 Notice this time it returns pairs of results, because it's trying to bind an atom to $X$ (the mother) and an atom to $Y$ (the child). Every successful way of doing this yields the relation. \\
 
 \noindent
-If we used $X$ twice instead of using $X$ and $Y$ it would try to find an $X$ satisfying $\kwa{mother(X,X)}$. In other words, a person who is their own mother. Prolog will tell you that's false (unless we added in as a fact that someone was their own mother). \\
+If we used $X$ twice instead of using $X$ and $Y$ it would try to find an $X$ satisfying $\kwa{mother(X,X)}$. In other words, a person who is their own mother. Prolog will tell you that's false. Sometimes it makes sense to be a relation with yourself though. For example, equality on numbers: every number is equal to itself. \\
 
 \noindent
-Sometimes it makes sense to be a relation with yourself though. For example, equality on numbers: every number is equal to itself (the functor is equality, the arity is 2). Lastly, even though we asked for solutions $X$ and $Y$, the fact that we used different names doesn't mean that $X$ and $Y$ have to be distinct. Sometimes $X = Y = \kwa{something}$ is a solution (not here though).\\
+Lastly, even though we asked for solutions $X$ and $Y$, the fact that we used different names doesn't mean that $X$ and $Y$ have to be distinct. Sometimes $X = Y = \kwa{something}$ is a solution (but not here).\\
 
 \noindent
-We could partially specify the arguments, and leave the rest to be filled in. Doing this, we can see who Mary's children are, and ask who Mary's mother is.
+We can also partially specify the arguments and let Prolog fill in the rest. Doing this, we can see who Mary's children are, and ask who Mary's mother is.
 
 \begin{lstlisting}
 $?-$ mother(mary, Y).
@@ -189,6 +162,9 @@ $?-$ mother(X, mary).
 X = tuhi.
 \end{lstlisting}
 
+
+\section{Predicate Bodies}
+
 \noindent
 Let's say we wanted to add the relation $\kwa{grandmother \slash 2}$ relation. One way to do it is to enumerate all the possible pairs, but that's tedious (and can't always be done if there are infinitely many solutions). Here's a better way.
 
@@ -197,10 +173,77 @@ grandmother(X,Z) :- mother(X, Y), mother(Y, Z).
 \end{lstlisting}
 
 \noindent
-$\kwa{grandmother \slash 2}$ is our first non-trivial predicate. The $\kwa{bird \slash 1}$ and $\kwa{mother \slash 2}$ predicates were just defined by listing pairs, but $\kwa{grandmother \slash 2}$ is defined in terms of other predicates (a relation between relations, I guess). The :- symobl separates the name and arguments of the predicate (left-hand side) from the body (right-hand side). \\
+$\kwa{grandmother \slash 2}$ is our first non-trivial predicate. The $\kwa{bird \slash 1}$ and $\kwa{mother \slash 2}$ predicates were just defined by explicitly listing the members of the relation, but here we've given a rule the members in the relation satisfy. \\
+
+\noindent 
+The :- symbol separates the name and arguments of the predicate (left-hand side) from the body (right-hand side). The name of a predicate is called its $\textit{functor}$. So the functor of $\kwa{grandmother \slash 2}$ is $\kwa{grandmother}$. \\
 
 \noindent
-It tries to bind $X$, $Y$, and $Z$ to values which satisfy both $\kwa{mother(X,Y)}$ and $\kwa{mother(Y,Z)}$. This is done left-to-right, so it tries $\kwa{mother(X,Y)}$ and then $\kwa{mother(Y,Z)}$. It then looks for other solutions by ``backtracking'', unbinding the last bound variable ($Z$ in this case) and then trying to find a new solution. This is why, when we query $\kwa{mother(X, Y)}$, it lists all the pairs $\kwa{(mary, Y)}$ before listing any of the pairs $\kwa{(tuhi, Y)}$.
+(Warning: if googling for information on Prolog, beware that the word functor has a more general meaning in category theory and Haskell). \\
+
+\noindent
+Here's how $\kwa{grandmother \slash 2}$ works: it tries to bind $X$, $Y$, and $Z$ to values which satisfy both $\kwa{mother(X,Y)}$ and $\kwa{mother(Y,Z)}$. This is done left-to-right, so it first finds an $X$ and $Y$ such that $\kwa{mother(X,Y)}$, and then finds a $Z$ such that $\kwa{mother(Y,Z)}$. When Prolog finds such a triple it spits out an answer. \\
+
+\noindent
+If you ask Prolog for another answer it unbinds the last variable that was bound and tries to find another value (in this case, that's $Z$). If it can't do that, it unbinds the second-last variable and tries to find another value for that, and so on. This is why, when we query $\kwa{mother(X, Y)}$ it lists all the pairs $\kwa{(mary, Y)}$ before listing any of the pairs $\kwa{(tuhi, Y)}$.
+
+\section{More Predicates}
+
+Let's add some more facts to our file and write some more fancy predicates.
+
+\begin{lstlisting}
+father(john, aj).
+father(john, rachel).
+father(john, amber).
+mother(edith, john).
+\end{lstlisting}
+
+\noindent
+Our $\kwa{grandmother \slash 2}$ is really the ``mother's mother'' relation. $\kwa{grandmother(X,Z)}$ should be true if $X$ is the mother of a parent of $Z$ (not just the mother of the mother of $Z$). So let's define a more general $\kwa{parent}$ predicate, by ORing together $\kwa{mother}$ and $\kwa{father}$. Then we can give a better $\kwa{grandmother}$ predicate.
+
+\begin{lstlisting}
+parent(X, Y) :- mother(X,Y) ; father(X,Y).
+grandmother(X, Z) :- mother(X, Y), parent(Y, Z).
+\end{lstlisting}
+
+\begin{lstlisting}
+$?-$ grandmother(X, aj).
+X = tuhi ;
+X = edith.
+\end{lstlisting} 
+
+\noindent
+What about siblings? Two people should be in the sibling relation if there is an $X$ which is a parent of both of them.
+
+\begin{lstlisting}
+sibling(X, Y) :- parent(M, X), parent(M, Y).
+\end{lstlisting}
+
+\begin{lstlisting}
+sibling(X, aj).
+X = aj ;
+X = amber ;
+X = rachel ;
+false.
+\end{lstlisting}
+
+\noindent
+That's weird: I am my own sibling. This is because there's no constraint saying $X$ and $Y$ have to be distinct. We can add that on the end like this.
+
+\begin{lstlisting}
+sibling(X, Y) :- parent(M, X), parent(M, Y), X \= Y.
+\end{lstlisting}
+
+\begin{lstlisting}
+$?-$ sibling(X, aj).
+X = amber ;
+X = rachel ;
+false.
+
+$?-$ sibling(X, mary).
+X = lance ;
+false.
+\end{lstlisting}
 
 \section{Types and Terms}
 
@@ -212,7 +255,7 @@ Prolog has a very minimal type-system. There are four types:
 	\item Numbers.
 	\item Atoms. These are things such as $\kwa{kiwi}$, $\kwa{tui}$. This is a sequence of characters starting with a lower-case letter. You can kind of think of it as like a string, but it's NOT a string. It's a sequence of characters, or a name. You can also specify atoms with single quotes.
 	\item Variables. A sequence of characters which starts with an underscore or a capital letter. Variables are either bound or unbound.
-	\item Predicates.
+	\item Predicates (and also other compounds, like lists).
 \end{enumerate}
 
 \noindent
