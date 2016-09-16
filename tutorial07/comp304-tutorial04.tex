@@ -1,0 +1,233 @@
+\documentclass[a4paper,12pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath}
+\usepackage[english]{babel}
+\usepackage{listings}
+
+\lstset{tabsize=3, basicstyle=\ttfamily\small, commentstyle=\itshape\rmfamily, numbers=left, numberstyle=\tiny, language=java,moredelim=[il][\sffamily]{?},mathescape=true,showspaces=false,showstringspaces=false,columns=fullflexible,xleftmargin=5pt,escapeinside={(@}{@)}, morekeywords=[1]{let,if,then,else}}
+\lstloadlanguages{Java, Haskell}
+
+% Key word, key word adjacent.
+\newcommand{\kwa}[1]{\mathtt{#1}}
+\newcommand{\kw}[1]{\kwa{#1}~}
+
+\begin{document}
+
+\title{COMP304 Tutorial 7 \\ 16/09/2016}
+\date{}
+\maketitle
+
+\section{Debugging}
+
+\noindent
+From inside SWI Prolog you can type ``trace'' to see how it attempts to unify terms with free variables. First, here are some facts.
+
+
+\begin{lstlisting}
+lecturer(alex).
+tutor(james).
+tutor(aj).
+supervisor(alex, aj).
+\end{lstlisting}
+
+\noindent
+We can activate trace by typing in ``trace'' at the console. Then if we pose a query, we can push enter to go through it step-by-step.
+
+\begin{lstlisting}
+[trace]  $?-$ tutor(X), supervisor(alex, X).
+   Call: (7) tutor(_G337) ? creep
+   Exit: (7) tutor(james) ? creep
+   Call: (7) supervisor(alex, james) ? creep
+   Fail: (7) supervisor(alex, james) ? creep
+   Redo: (7) tutor(_G337) ? creep
+   Exit: (7) tutor(aj) ? creep
+   Call: (7) supervisor(alex, aj) ? creep
+   Exit: (7) supervisor(alex, aj) ? creep
+X = aj.
+\end{lstlisting}
+
+\noindent
+It first attempted to solve the query with the solution $\kwa{X = james}$, but failed because $\kwa{supervisor(alex, james)}$ is not true. It then backtracked, and rebound $\kwa{X}$ to $\kwa{aj}$, and tried again. This time it succeeded. \\
+
+\noindent
+You can end the debugger with $\kwa{notrace}$. Also, you can provide arguments to $\kwa{trace}$ so that it will only stop on certain predicates, only stop on failures, etc. More information is here:
+http://www.swi-prolog.org/pldoc/man?section=debugger
+
+
+\section{Lists}
+
+The list syntax in Prolog is a little bit different. If you want to match multiple elements at the head of the list, use a comma. Here's a showcase of that in the below predicate, which inserts a number into a list so that it remains ordered.
+
+\begin{lstlisting}
+% insert(X, L1, L2) holds if L2 is the result of inserting X into L1,
+% and it is inserted in ascending order.
+
+% inserting into empty list gives a singleton.
+insert(X, [], [X]).
+
+% if X is less than or equal to head of list, insert X followed by the rest
+% of the list.
+insert(X, [Z|Rest], [X,Z|Rest]) :-
+   X < Z ; X == Z.
+
+% otherwise X > head of list, so keep searching.
+insert(X, [Z|List], [Z|Rest]) :-
+   X > Z,
+   insert(X, List, Rest).
+\end{lstlisting}
+
+\noindent
+Here's another example. We can define $\kwa{zip}$ as a predicate $\kwa{zip \slash 3}$, which holds if the third argument is the result of zipping together the first two lists.
+
+\begin{lstlisting}
+zip([], _, []).
+zip(_, [], []).
+zip([X|Xs], [Y|Ys], [X:Y|Rest]) :-
+   zip(Xs, Ys, Rest).
+\end{lstlisting}
+   
+\noindent
+Note we're using : to delimit the elements of a pair. There's nothing special in our use of this. : is a (predefined) infix operator symbol, and we're overloading it to mean ``pair'' in this case. We could also use ?, if we wanted. \\
+
+\noindent
+Lastly, $\kwa{[a,b,c]}$ is the same thing as $\kwa{[a|[b|[c|[]]]]}$
+
+\section{Unification}
+
+\noindent
+Unification is the process of equating two terms by substituting free variables for concrete terms. For example, the query $\kwa{supervisor(alex, Y)}$ can be solved by the substitution $\{ Y \mapsto aj \}$. We would then say that the terms $\kwa{supervisor(alex, Y)}$ and $\kwa{supervisor(alex, aj)}$ can be unified. \\
+
+\noindent
+Here's a cool example of using unification, from learnprolognow.org. A line can be defined as a pair of points, and a point can be defined as a predicate on two numbers. A line is vertical iff the x-component of the two points is the same. A predicate for that is:
+
+\begin{lstlisting}
+vertical(line(point(X, _), point(X, _))).
+\end{lstlisting}
+
+\noindent
+The behaviour of this predicate can be illustrated with the following queries:
+
+\begin{lstlisting}
+$?- $ vertical(line(point(3, 5), point(3, B))).
+true.
+
+$?- $ vertical(line(point(3, 5), point(5, 3))).
+false.
+\end{lstlisting}
+
+\noindent
+You can think of this as like pattern-matching on trees. The way in which Prolog unifies is by depth-first search.
+
+\section{Semantics}
+
+\noindent
+In Prolog the distinction between syntax and semantics is blurred quite a bit. In Haskell, for instance, $f(X)$ means the function $f$ applied to the expression $X$. The syntax is the sequence of tokens ``f'', ``(``, ``X'', ``)'', but the semantics of $f(X)$, the meaning of it, is the value you get when you evaluate the expression $f(X)$, based on how $f$ has been defined. \\
+
+\noindent
+In Prolog, syntax and semantics are kind of blurred. If you see $t_1 = t_2$ in Prolog, it is true iff the two things have the same structure. For instance, $\kwa{wellington = wellington}$ is true, but $\kwa{1 + 1= 2}$ is not true, because $\kwa{1 + 1}$ and $\kwa{2}$ are syntactically distinct terms. \\
+
+\noindent
+In the theory of arithmetic, $\kwa{1 + 1 = 2}$ is true though, but that's another sense of ``arithmetic equality''. We can get that notion of arithmetic equality by using $\kwa{is}$. For instance, $\kwa{2~is~1+1}$ will give us true (the order is important; the argument on the left of $\kwa{is}$ should be the value that the expression on the right evaluates to). \\
+
+\noindent
+A term like $p(X)$ is ``true'' if $p(X)$, with some concrete value of $X$, can exist inside the universe of your program. What that means is you've either specified $p(X)$ for some concrete value of $p$ (e.g. $\kwa{p(Wellington)}$.) or $p(X)$ can be unified with $t_1$, where $t_1$ coheres with the body of $p$. \\
+
+\noindent
+(This interpretation of Prolog terms ``as themselves'' is called the Herbrand interpretation in logic).
+
+\section{Cyclic Expressions}
+
+\noindent
+Because two terms are equal if their syntactic structures are the same (or can be made the same), you have to be careful not to define cyclic structures. Consider the following examples.
+
+\begin{lstlisting}
+weird1(X, f(X)).
+\end{lstlisting}
+
+\noindent
+$\kwa{weird1(X, X)}$ should unify iff $X = f(X)$. But if you pick any value of $X$ the right-hand side will have an extra `f' at the front. For example, $\kwa{weird1(wellington, wellington)}$ holds iff $\kwa{wellington = f(wellington)}$, but these two terms do not have the same syntactic structure. $\kwa{weird1(X, X)}$ should be false then. \\
+
+\noindent
+The issue boils down to this: if you try to unify $t_1 = t_2$, and $t_1$ occurs inside $t_2$, then it should fail. Checking that $t_1$ does not occur inside $t_2$ is called the occurs check. For matters of efficiency, a lot of Prolog implementations (including SWI) don't do the occurs check. As a result, trying to unify terms where one occurs inside the other gives you the wrong answer, when really it should fail.
+
+\begin{lstlisting}
+$?-$ weird1(X, f(X)), print X.
+@(S_1,[S_1=f(S_1)])
+X = f(X).
+\end{lstlisting}
+
+\noindent 
+This issue can manifest if you have recursion that never reaches a base-case. Here's a second example:
+
+\begin{lstlisting}
+weird2(X, X:X).
+\end{lstlisting}
+
+\noindent
+$\kwa{weird2(X, X)}$ should unify if $\kwa{X = X:X}$, but these two terms have distinct syntactic structures. Another way to state the equality is, ``X is the pair containing itself twice''. This should be false, because no such term exists, but Prolog will say otherwise. Be cautious.
+
+\section{Graph Algorithms}
+
+\noindent
+Here's a graph:
+
+\begin{lstlisting}
+edge(a, b).
+edge(a, c).
+edge(c, d).
+edge(b, d).
+edge(e, f).
+edge(f, g).
+\end{lstlisting}
+
+\noindent
+Let's say we want to find the paths between two nodes. We'll represent a path as a list of edges. We'll use $\kwa{edge(X, Y)}$ as the data representation of an edge. $\kwa{path \slash 3}$ holds if the third argument is a path from the node in the first argument, to the node in the second argument.
+
+\begin{lstlisting}
+% Any node has an empty path to itself.
+path(X, X, []).
+
+% An edge between source and goal is a path, if it exists.
+path(X, Z, [edge(X, Z)]) :- edge(X, Z).
+
+% Otherwise if you can find an edge from X to Y, and then a path from Y to Z,
+% you have a path from X to Z.
+path(X, Z, [edge(X, Y) | Rest]) :-
+   edge(X, Y),
+   path(Y, Z, Rest).
+\end{lstlisting}
+
+\noindent
+That second one is a little tricky. The predicate body is necessary, because we want that edge to actually be an edge in our knowledge-base (our knowledge-base being the representation of the collection of edges in the graph). We can query the paths between a pair of nodes like so.
+\begin{lstlisting}
+$?-$ path(a, d, P).
+P = [edge(a, b), edge(b, d)] ;
+P = [edge(a, b), edge(b, d)] ;
+P = [edge(a, c), edge(c, d)] ;
+P = [edge(a, c), edge(c, d)] ;
+false.
+\end{lstlisting}
+
+\section{Tests}
+
+\noindent
+You can test your predicates by playing around with them in the interpreter, or by writing predicates which test other predicates. You can also write nameless predicates which are automatically checked on entry. For example:
+
+\begin{lstlisting}
+:- path(a, d, _).
+\end{lstlisting}
+
+\noindent
+As soon as you load Prolog, it will try to prove there is a path from $\kwa{a}$ to $\kwa{b}$, and give you a warning if there isn't.
+
+\end{document}
+
+
+
+
+
+
+
+
+
