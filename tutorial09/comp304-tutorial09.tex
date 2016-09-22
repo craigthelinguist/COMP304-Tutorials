@@ -1,0 +1,215 @@
+\documentclass[a4paper,12pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath}
+\usepackage[english]{babel}
+\usepackage{listings}
+
+\lstset{tabsize=3, basicstyle=\ttfamily\small, commentstyle=\itshape\rmfamily, numbers=left, numberstyle=\tiny, language=java,moredelim=[il][\sffamily]{?},mathescape=true,showspaces=false,showstringspaces=false,columns=fullflexible,xleftmargin=5pt,escapeinside={(@}{@)}, morekeywords=[1]{let,if,then,else}}
+\lstloadlanguages{Java, Haskell}
+
+% Key word, key word adjacent.
+\newcommand{\kwa}[1]{\mathtt{#1}}
+\newcommand{\kw}[1]{\kwa{#1}~}
+
+\begin{document}
+
+\title{COMP304 Tutorial 09 \\ 23/09/2016}
+\date{}
+\maketitle
+
+\section{Finite State Machines}
+
+We'll cover some examples from the lecture in finer details. Recall that a finite state machine (FSM) is a set of states and transitions. The system is in one state at any given time, and connected transitions tell you to move into another state when you see an event happen. This can be modelled as a graph. For example:
+
+\begin{lstlisting}
+start(1).
+finish(3).
+
+transition(1, a, 2).
+transition(1, b, 2).
+transition(1, c, 3).
+transition(2, c, 3).
+\end{lstlisting}
+
+\noindent
+The start are nodes and the transitions are labelled edges. $\kwa{transition(1, a, 2)}$ means: ``if you are in state $1$ and you see event $\kwa{a}$ happen, move to state $2$''. If you have a language $\mathcal{L}$ of events, the string $\sigma$ may be seen as a sequence of events. A finite-state machine may compute $\sigma$ if there is a path of events matching $\sigma$ from the start state to the final state.\\
+
+\noindent
+A string (or a sequence of events) is accepted by an FSM if there is an accepting path from a start-state, along which those events happen.
+
+\begin{lstlisting}
+accept(String) :-
+    start(State),
+    acceptingPath(State, String).
+\end{lstlisting}
+
+\noindent
+If there are no more events to be accepted, and you're in a finishing state, then this is an accepting path.
+
+\begin{lstlisting}
+acceptingPath(State, []) :- finish(State).
+\end{lstlisting}
+
+\noindent
+Otherwise if you're in $\kwa{State1}$ and you can take a transition from the next event in sequence to $\kwa{State2}$, and there's an accepting path from $\kwa{State2}$ covering the rest of the events, this is an accepting path.
+
+\begin{lstlisting}
+acceptingPath(State1, [NextEvent | RestOfEvents]) :-
+    transition(State1, NextEvent, State2),
+    acceptingPath(State2, RestOfEvents).
+\end{lstlisting}
+
+\noindent
+We may then ask Prolog for paths which are accepting by posing a query like this one:
+
+\begin{lstlisting}
+$?-$ accept(X).
+X = [a, c] ;
+X = [b, c] ;
+X = [c] ;
+false.
+\end{lstlisting}
+
+\noindent
+The order in which we defined transitions is significant. If transition $t_1$ is specified before transition $t_2$, Prolog will try transition $t_1$ first.\\
+
+\noindent
+We might like to gather all solutions to a predicate, and SWI Prolog's $\kwa{findall \slash 3}$ lets us do that. Here is a predicate which makes use of $\kwa{findall \slash 3}$ to collect the set of strings accepted by our FSM (its language).
+
+\begin{lstlisting}
+language(L) :-
+    findall(String, accept(String), L).
+\end{lstlisting}
+
+\noindent
+If it helps, you could think of the second argument as being ``higher-order'', in that it takes a predicate (a bit like how in Haskell you could pass functions around as arguments). \\
+
+
+\section{Musings On Computability}
+
+\noindent
+There's something kind of interesting in what we've done. If you think of the rules of an FSM as a model of computation, then an instance of an FSM is like a computer program. The predicate we wrote to figure out the language is essentially telling us every output this computer program can do. Can we do the same thing for a program written in Java or Haskell? \\
+
+\noindent
+The answer is: no (Rice's theorem). Finite state machines are a weaker model of computation than $\lambda$ functions or Turing/register machines, which are the foundations for functional and imperative languages. They are not Turing-complete, meaning there are programs you can write in Java and Haskell, which you cannot write as a finite-state machine.\footnote{~Some argue this isn't true, because computers have a finite amount of memory (while Turing machines don't) and can thus be considered as enormously FSMs; but that's kind of an implementation detail.} \\
+
+\noindent
+Although FSMs are weaker than Turing machines, that doesn't mean ``programs'' in FSMs are necessarily less useful. Sometimes you don't need the full computational power of a Turing machine for a certain program, so you can get away with an FSM. For example, a controller for some big system (e.g. traffic lights or elevator). Regular expressions are another one: a regular expression has a corresponding FSM which accepts exactly the same set of strings (language). \\
+
+\noindent
+Because FSMs are weaker you can reason about them better. We just showed how you can look at the outputs of a program. If you have a more interesting FSM, e.g. an elevator, you can ask more interesting questions like: ``is there a sequence of events where the elevator ends up stranded and not able to move''. You may have used LTSA in SWEN224 last year, which basically uses FSMs to reason about concurrent systems.
+
+\section{Non-Determinism}
+
+The FSM we wrote is deterministic, meaning in any given state if an event happens there is only one transition that may be taken. If we relax this requirement we get non-deterministic state machines. Here's an example:
+
+\begin{lstlisting}
+start(1).
+finish(3).
+
+transition(1, a, 2).
+transition(1, a, 3).
+transition(1, b, 2).
+transition(1, c, 3).
+transition(2, c, 3).
+\end{lstlisting}
+
+\noindent
+A non-deterministic state machine accepts a string if any path consumes every token/event in the string. We may again ask what the language of this machine is.
+
+\begin{lstlisting}
+$?-$ language(L).
+L = [[a, c], [a], [b, c], [c]].
+\end{lstlisting}
+
+\noindent
+The way Prolog works is that it may take either path when searching for a solution. It will try one path (which is based on which transition comes first in your Prolog file) and then try the other. \\
+
+\noindent
+If we have a cycle in our graph, the language it accepts would be an infinite set.
+
+\begin{lstlisting}
+start(1).
+finish(3).
+
+transition(1, a, 2).
+transition(1, a, 3).
+transition(1, b, 2).
+transition(1, c, 3).
+transition(2, c, 3).
+transition(2, d, 2).
+\end{lstlisting}
+
+\noindent
+If we then ask Prolog for the language it will loop forever until it crashes (because it will be trying to generate the set, which it can't display to you). This means the order of predicates does matter when there are infinitely many distinct (i.e. can't be generally described) solutions involved. This program will crash:
+
+\begin{lstlisting}
+$?-$ language(L), print(`there's a solution!')
+\end{lstlisting}
+
+\noindent
+Because it attempts to solve $\kwa{language(L)}$ by explicitly constructing an answer (compare that with a proof-by-hand, where you could describe the infinite set in finite terms, rather than by listing every element). You can see how Prolog's search-tree is working:
+
+\begin{lstlisting}
+$?-$ accept(X).
+X = [a, c] ;
+X = [a, d, c] ;
+X = [a, d, d, c] ;
+X = [a, d, d, d, c] ;
+X = [a, d, d, d, d, c] ;
+X = [a, d, d, d, d, d, c] ;
+\end{lstlisting}
+
+\noindent
+You might wonder if non-deterministic FSMs are more powerful, in that they may compute things which deterministic FSMs cannot, but they are able to compute the same languages \footnote{~Rabin \& Scott (1958).} (however, non-deterministic FSMs can compute things in a polynomial number of states for which deterministic FSMs require an exponential number of states). \\
+
+\noindent
+State machines can't compute everything and Prolog can sometimes loop forever. The main takeaway is that, at the end of the day, we can't rely 100\% on computers to tell us we've done something right.
+
+
+\section{Prolog Semantics}
+
+We've seen some weird things about Prolog, such as the way in which it interprets the ``meaning'' of a term. For example, $2 ~\kwa{==}~ 1+1$ is not true (because those two terms aren't syntactically equivalent), but $2~ \kwa{is} ~1+1$ is true (however, $1+1~ \kwa{is} ~2$ is not true). \\
+
+\noindent
+Something is ``true'' in Prolog if it can prove that it exists from its knowledge-base. Otherwise, it is false. Negation works a bit weird on this definition. Take the following:
+
+\begin{lstlisting}
+bird(kiwi).
+bird(albatross).
+flightless(kiwi).
+\end{lstlisting}
+
+\noindent
+If we want to negate something we may use the $\kwa{not \slash 1}$ predicate. To ask if an albatross is not flightless, we might try this:
+
+\begin{lstlisting}
+$?-$ not(flightless(albatross)).
+true.
+\end{lstlisting}
+
+\noindent
+But if we left the argument to flightless as an unbound variable, this is how Prolog responds:
+
+\begin{lstlisting}
+$?-$ not(flightless(X)).
+false.
+\end{lstlisting}
+
+\noindent
+Does this seem weird? It did to me at first. Recall truth in Prolog: something is false if you cannot prove it true. But Prolog can prove $\kwa{flightless(X)}$ true, by binding $X = \kwa{Kiwi}$. You might try to read $\kwa{not(flightless(X)}$ as ``give me an $X$ for which $\kwa{not(flightless(X))}$ is true'', but what it really means in Prolog is ``show that no $X$ is flightless''. \\
+
+\noindent
+There's a reason for this. If you think about the constructive nature of Prolog, when you ask it to find a predicate $P(X)$ you may think of it as solving the logical equation $\exists X \mid P(X)$. The negation of this is $\neg (\exists X \mid P(X)) \equiv \forall X \mid \neg P(X)$. That means $\kwa{not(flightless(X))}$ is true if $\kwa{flightless(X)}$ is false, for all $X$. The mistake comes from thinking that Prolog will interpret it as $\exists X \mid (\neg P(X))$.
+
+\end{document}
+
+
+
+
+
+
+
+
+
