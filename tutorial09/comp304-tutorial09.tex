@@ -89,7 +89,7 @@ If it helps, you could think of the second argument as being ``higher-order'', i
 \section{Musings On Computability}
 
 \noindent
-There's something kind of interesting in what we've done. If you think of the rules of an FSM as a model of computation, then an instance of an FSM is like a computer program. The predicate we wrote to figure out the language is essentially telling us every output this computer program can do. Can we do the same thing for a program written in Java or Haskell? \\
+There's something kind of interesting in what we've done. If you think of the rules of an FSM as a model of computation, then an instance of an FSM is like a computer program. The predicate we wrote to figure out the language is characterising the behaviour of the computer program. Can we do the same thing for a program written in Java or Haskell? \\
 
 \noindent
 The answer is: no (Rice's theorem). Finite state machines are a weaker model of computation than $\lambda$ functions or Turing/register machines, which are the foundations for functional and imperative languages. They are not Turing-complete, meaning there are programs you can write in Java and Haskell, which you cannot write as a finite-state machine.\footnote{~Some argue this isn't true, because computers have a finite amount of memory (while Turing machines don't) and can thus be considered as enormously FSMs; but that's kind of an implementation detail.} \\
