@@ -20,7 +20,7 @@
 
 \section{Finite State Machines}
 
-We'll cover some examples from the lecture in finer details. Recall that a finite state machine (FSM) is a set of states and transitions. The system is in one state at any given time, and connected transitions tell you to move into another state when you see an event happen. This can be modelled as a graph. For example:
+We'll cover some examples from the lecture in finer detail. Recall that a finite state machine (FSM) is a set of states and transitions. The system is in one state at any given time, and connected transitions tell you to move into another state when you see an event happen. This can be modelled as a graph. For example:
 
 \begin{lstlisting}
 start(1).
@@ -33,10 +33,7 @@ transition(2, c, 3).
 \end{lstlisting}
 
 \noindent
-The start are nodes and the transitions are labelled edges. $\kwa{transition(1, a, 2)}$ means: ``if you are in state $1$ and you see event $\kwa{a}$ happen, move to state $2$''. If you have a language $\mathcal{L}$ of events, the string $\sigma$ may be seen as a sequence of events. A finite-state machine may compute $\sigma$ if there is a path of events matching $\sigma$ from the start state to the final state.\\
-
-\noindent
-A string (or a sequence of events) is accepted by an FSM if there is an accepting path from a start-state, along which those events happen.
+The states are nodes and the transitions are labelled edges. $\kwa{transition(1, a, 2)}$ means: ``if you are in state $1$ and you see event $\kwa{a}$ happen, move to state $2$''. You can think of a sequence of events as a string $\sigma$. Then the machine accepts $\sigma$ if there is a path of events matching $\sigma$ from the start state to the final state.
 
 \begin{lstlisting}
 accept(String) :-
@@ -72,7 +69,7 @@ false.
 \end{lstlisting}
 
 \noindent
-The order in which we defined transitions is significant. If transition $t_1$ is specified before transition $t_2$, Prolog will try transition $t_1$ first.\\
+The set of all such strings accepted by the FSM is called its language $\mathcal{L}$. Also, the order in which we defined transitions is significant. If transition $t_1$ is specified before transition $t_2$, Prolog will try transition $t_1$ first.\\
 
 \noindent
 We might like to gather all solutions to a predicate, and SWI Prolog's $\kwa{findall \slash 3}$ lets us do that. Here is a predicate which makes use of $\kwa{findall \slash 3}$ to collect the set of strings accepted by our FSM (its language).
@@ -83,7 +80,7 @@ language(L) :-
 \end{lstlisting}
 
 \noindent
-If it helps, you could think of the second argument as being ``higher-order'', in that it takes a predicate (a bit like how in Haskell you could pass functions around as arguments). \\
+If it helps, you could think of the second argument as being ``higher-order'', in that it takes a predicate (a bit like how in Haskell you could pass functions around as arguments). There are other similar predicates for collecting all solutions, such as $\kwa{setof \slash 3}$ (only gather unique solutions, in the case where Prolog can prove $X$ is a solution in different ways). \\
 
 
 \section{Musings On Computability}
@@ -95,10 +92,10 @@ There's something kind of interesting in what we've done. If you think of the ru
 The answer is: no (Rice's theorem). Finite state machines are a weaker model of computation than $\lambda$ functions or Turing/register machines, which are the foundations for functional and imperative languages. They are not Turing-complete, meaning there are programs you can write in Java and Haskell, which you cannot write as a finite-state machine.\footnote{~Some argue this isn't true, because computers have a finite amount of memory (while Turing machines don't) and can thus be considered as enormously FSMs; but that's kind of an implementation detail.} \\
 
 \noindent
-Although FSMs are weaker than Turing machines, that doesn't mean ``programs'' in FSMs are necessarily less useful. Sometimes you don't need the full computational power of a Turing machine for a certain program, so you can get away with an FSM. For example, a controller for some big system (e.g. traffic lights or elevator). Regular expressions are another one: a regular expression has a corresponding FSM which accepts exactly the same set of strings (language). \\
+Although FSMs are weaker than Turing machines, that doesn't mean ``programs'' in FSMs aren't useful. Sometimes you don't need the full computational power of a Turing machine for a certain program, so you can get away with an FSM. For example, a controller for some big system (e.g. traffic lights or elevator). Regular expressions are another one: a regular expression has a corresponding FSM which accepts exactly the same set of strings (language). \\
 
 \noindent
-Because FSMs are weaker you can reason about them better. We just showed how you can look at the outputs of a program. If you have a more interesting FSM, e.g. an elevator, you can ask more interesting questions like: ``is there a sequence of events where the elevator ends up stranded and not able to move''. You may have used LTSA in SWEN224 last year, which basically uses FSMs to reason about concurrent systems.
+There's a benefit in this. The predicate $\kwa{language}$ characterises everything this particular state machine does, and because FSMs are a weaker model of computation we can often answer more interesting questions about them. If your transitions correspond to events in an elevator control we can use that notion to reason about the correctness and safety of the elevator (like in LTSA, which you may have seen in SWEN224 last year).
 
 \section{Non-Determinism}
 
