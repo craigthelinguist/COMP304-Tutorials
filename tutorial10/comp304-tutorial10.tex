@@ -51,6 +51,15 @@ Does this seem weird? It did to me at first. Recall truth in Prolog: something i
 \noindent
 There's a reason for this. If you think about the constructive nature of Prolog, when you ask it to find a predicate $P(X)$ you may think of it as solving the logical equation $\exists X \mid P(X)$. The negation of this is $\neg (\exists X \mid P(X)) \equiv \forall X \mid \neg P(X)$. That means $\kwa{not(flightless(X))}$ is true if $\kwa{flightless(X)}$ is false, for all $X$. The mistake comes from thinking that Prolog will interpret it as $\exists X \mid (\neg P(X))$.\\
 
+\noindent
+There's another way to do the same thing, using the $\kwa{ \backslash +}$ operator. As far as I know, $\kwa{ \backslash +}$ and $\kwa{not}$ are the same thing.
+
+\begin{lstlisting}
+$?-$ $\backslash$+ flightless(X).
+false.
+\end{lstlisting}
+
+
 \section{Cuts}
 
 \noindent
@@ -106,13 +115,6 @@ It might be nice to know if a machine is deterministic too. An easy way to descr
 
 \begin{lstlisting}
 dfa :- not(ndfa).
-\end{lstlisting}
-
-\noindent
-There's another way to do the same thing, using the $\kwa{ \backslash +}$ operator. As far as I know, $\kwa{ \backslash +}$ and $\kwa{not}$ are the same thing.
-
-\begin{lstlisting}
-dfa :- \+ ndfa.
 \end{lstlisting}
 
 \noindent
@@ -176,9 +178,11 @@ ndfa :-
 	edge(a, e, b).
 \end{lstlisting}
 
-Unfortunately this will succeed on any (non-empty) graph, because anything solving the first $\kwa{edge(a, e, b)}$ will also solve the second $\kwa{edge(a, e, b)}$. We want two distinct edges which are syntactically equivalent. Expressing that is a bit tricky. Here's one solution.
+\noindent
+Unfortunately this will succeed on any (non-empty) graph, because anything solving the first $\kwa{edge(a, e, b)}$ will also solve the second $\kwa{edge(a, e, b)}$. We want two distinct edges which are syntactically equivalent. Expressing that is a bit tricky. Here's one solution: an edge is parallel if it exists in the list of edges, and the number of times it occurs is more than once. \\
 
-An edge is parallel if it exists in the list of edges, and the number of times it occurs is more than once. I don't think SWI-Prolog has a built-in $\kwa{count}$ predicate, so let's implement that.
+\noindent
+A I don't think SWI-Prolog has a built-in $\kwa{count}$ predicate, so let's implement that (what would a tail-recursive version look like?)
 
 \begin{lstlisting}
 count(_, [], 0).
@@ -249,7 +253,7 @@ This happens because there are three derivations which show our graph is non-det
 \end{enumerate}
 
 \noindent
-If we didn't have that cut on the second case of $\kwa{ndfa}$, we'd have even more solutions (because it would be finding all the pairs which go to the same node, not just a single pair). A quick way to prune this down is to use cuts.
+If we didn't have that cut on the second case of $\kwa{ndfa}$, that third one would turn into even more derivations (by finding all the pairs which go the same node, not just a single pair). A quick way to prune this down is to use cuts.
 
 \begin{lstlisting}
 ndfa :- parallel(_), !.
@@ -261,13 +265,10 @@ ndfa :-
 \end{lstlisting}
 
 \noindent
-Now it will only search for one solution and stop when we find it. Another strategy would be to put the cut inside the $\kwa{parallel}$ predicate (if in your situation you only care about whether the graph \textit{contains} parallel edges, but not what they are). \\
+Now it will only search for one solution and stop when we find it. Another strategy would be to put the cut inside the $\kwa{parallel}$ predicate (if you only care about whether the graph \textit{contains} parallel edges, but not what they are). \\
 
 \noindent
-The use of cuts in this manner is a bit like the way you pattern-match in Haskell. Recall that when you have multiple definitions for a function $f$, when you call $f$ Haskell will go down the list, matching what you've passed in as arguments to the patterns defined. When it sees one that matches, it executes that definition of the function and ignores the rest. This is a little bit like what Prolog is doing: it's trying to find the first case of $\kwa{ndfa}$ applicable, and when it finds a successful one it ignores the others.
-
-
-
+The use of cuts in this manner is a bit like the way you pattern-match in Haskell. Recall that when you have multiple definitions for a function $f$, when you call $f$ Haskell will go down the list, matching what you've passed in as arguments to the patterns defined. When it sees one that matches, it executes that definition of the function and ignores the rest. This is a little bit like what our program does when you pose $\kwa{ndfa}$ to it: it's trying to find the first case of $\kwa{ndfa}$ applicable, and when it finds a successful one it ignores the others.
 
 \end{document}
 
