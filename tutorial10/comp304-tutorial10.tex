@@ -1,0 +1,281 @@
+\documentclass[a4paper,12pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath}
+\usepackage[english]{babel}
+\usepackage{listings}
+
+\lstset{tabsize=3, basicstyle=\ttfamily\small, commentstyle=\itshape\rmfamily, numbers=left, numberstyle=\tiny, language=java,moredelim=[il][\sffamily]{?},mathescape=true,showspaces=false,showstringspaces=false,columns=fullflexible,xleftmargin=5pt,escapeinside={(@}{@)}, morekeywords=[1]{let,if,then,else}}
+\lstloadlanguages{Java, Haskell}
+
+% Key word, key word adjacent.
+\newcommand{\kwa}[1]{\mathtt{#1}}
+\newcommand{\kw}[1]{\kwa{#1}~}
+
+\begin{document}
+
+\title{COMP304 Tutorial 10 \\ 30/09/2016}
+\date{}
+\maketitle
+
+\section{Negation}
+
+\noindent
+Something is ``true'' in Prolog if it can prove that it exists from its knowledge-base. Otherwise, it is false. Negation works a bit weird on this definition. Take the following:
+
+\begin{lstlisting}
+bird(kiwi).
+bird(albatross).
+flightless(kiwi).
+\end{lstlisting}
+
+\noindent
+If we want to negate something we may use the $\kwa{not \slash 1}$ predicate. To ask if an albatross is not flightless, we might try this:
+
+\begin{lstlisting}
+$?-$ not(flightless(albatross)).
+true.
+\end{lstlisting}
+
+\noindent
+But if we left the argument to flightless as an unbound variable, this is how Prolog responds:
+
+\begin{lstlisting}
+$?-$ not(flightless(X)).
+false.
+\end{lstlisting}
+
+\noindent
+Does this seem weird? It did to me at first. Recall truth in Prolog: something is false if you cannot prove it true. But Prolog can prove $\kwa{flightless(X)}$ true, by binding $X = \kwa{Kiwi}$. You might try to read $\kwa{not(flightless(X)}$ as ``give me an $X$ for which $\kwa{not(flightless(X))}$ is true'', but what it really means in Prolog is ``show that no $X$ is flightless''. \\
+
+\noindent
+There's a reason for this. If you think about the constructive nature of Prolog, when you ask it to find a predicate $P(X)$ you may think of it as solving the logical equation $\exists X \mid P(X)$. The negation of this is $\neg (\exists X \mid P(X)) \equiv \forall X \mid \neg P(X)$. That means $\kwa{not(flightless(X))}$ is true if $\kwa{flightless(X)}$ is false, for all $X$. The mistake comes from thinking that Prolog will interpret it as $\exists X \mid (\neg P(X))$.\\
+
+\section{Cuts}
+
+\noindent
+When Prolog attempts to prove something we've seen how it builds a search-tree of solutions. The cut operator $!$ lets us manipulate that search tree. It essentially says, ``don't try to find alternative solutions for whichever variables have been bound already''.
+
+\noindent
+Here's an example. Suppose we want to write a function to determine if a state machine is non-deterministic. Here's a first attempt:
+
+\begin{lstlisting}
+edge(1, a, 2).
+edge(1, a, 3).
+edge(2, b, 3).
+edge(2, c, 3).
+
+ndfa(Edges) :-
+   member(edge(Start, Event, End1), Edges),
+   member(edge(Start, Event, End2), Edges),
+   End1 \= End2.
+
+\end{lstlisting}
+
+\noindent
+Let's go ahead and check what we get.
+
+\begin{lstlisting}
+$?-$ ndfa.
+true ;
+true ;
+false.
+\end{lstlisting}
+
+\noindent
+It works, but it's kind of annoying that it gives us multiple solutions. This is because there are two pairs of edges which make it non-deterministic. Probably we only care \textit{if} the machine is deterministic, not \textit{how}. This distinction might matter if we query $\kwa{ndfa}$ as part of a big query with lots of solutions, in which case Prolog is going to do a lot of unnecessary backtracking. We can prevent that by cutting as soon as we've found a solution.
+
+\begin{lstlisting}
+ndfa(Edges) :-
+   member(edge(Start, Event, End1), Edges),
+   member(edge(Start, Event, End2), Edges),
+   End1 \= End2, !.
+\end{lstlisting}
+
+\noindent
+The cut says, ``whatever we've bound so far, freeze its value and don't look for any more solutions for those variables anymore''. That means it won't try and find alternative solutions for $\kwa{edge(Start, Event, End1)}$ and so on. Because we put this at the end, when it would have found a solution for every free variable, this effectively means ``don't look for anymore solutions''.
+
+\begin{lstlisting}
+$?-$ ndfa.
+true.
+\end{lstlisting}
+
+\section{Negation, Part 2}
+
+It might be nice to know if a machine is deterministic too. An easy way to describe that is to say, ``it's deterministic if it's not non-deterministic''. There are a few ways we can do that. The standard way is to use the $\kwa{not}$ predicate.
+
+\begin{lstlisting}
+dfa :- not(ndfa).
+\end{lstlisting}
+
+\noindent
+There's another way to do the same thing, using the $\kwa{ \backslash +}$ operator. As far as I know, $\kwa{ \backslash +}$ and $\kwa{not}$ are the same thing.
+
+\begin{lstlisting}
+dfa :- \+ ndfa.
+\end{lstlisting}
+
+\noindent
+In this case negation works like we expect, because non-deterministic means ``there exists two edges going to same node'', so deterministic would mean ``for every pair of edges, they don't go to the same node'', which is exactly the meaning of negation given by Prolog. \\
+
+\section{Cuts, Part 2}
+
+One extra thing about cuts is it means you commit to the current goal being proved. There may be multiple cases for some predicate in a Prolog file.
+
+\begin{lstlisting}
+P$_1$ :- G$_1$, !, G$_2$.
+P$_1$ :- G$_3$.
+\end{lstlisting}
+
+\noindent
+To prove $\kwa{P_1}$ we'd first try to prove the goal $\kwa{G_1, !, G_2}$. If we succeed in proving $\kwa{G_1}$, the cut means ``don't find anymore solutions for $\kwa{G_1}$'', but it also means ``don't try to prove $\kwa{P_1}$ by using a different goal''. To illustrate, take this example of a family tree and a grandmother predicate (which works on both sides of the family).
+
+\begin{lstlisting}
+father(john, aj).
+mother(edith, john).
+mother(mary, aj).
+mother(tuhi, mary).
+
+grandma(G, X) :- mother(G, M), mother(M, X).
+grandma(G, X) :- mother(G, F), father(F, X).
+\end{lstlisting}
+
+\noindent
+This works as we'd expect.
+
+\begin{lstlisting}
+$?-$ grandma(G, aj).
+G = tuhi ;
+G = edith ;
+false.
+\end{lstlisting}
+
+\noindent
+But if we add in extra cuts, we run into a problem.
+
+\begin{lstlisting}
+grandma(G, X) :- mother(G, M), mother(M, X), !.
+grandma(G, X) :- mother(G, F), father(F, X), !.
+\end{lstlisting}
+
+\begin{lstlisting}
+$?-$ grandma(G, aj).
+G = tuhi.
+\end{lstlisting}
+
+\noindent
+What happens is that Prolog attempts the first goal for $\kwa{grandma(G, aj)}$, which is to prove $\kwa{mother(G, M), mother(M, X), !}$. It's able to do this. When it reaches the cut, it will never go back up the search-tree (meaning it's never going to try the other case of $\kwa{grandma \slash 2}$ and thus misses the other solution).
+
+\section{Cuts, Part 3}
+
+Consider our earlier predicate to determine if a graph is non-deterministic. It won't work on a graph with parallel edges. A solution is straight-forward: we define another case of $\kwa{ndfa}$ which succeeds if there is a pair of parallel edges. Here's a first attempt at that.
+
+\begin{lstlisting}
+ndfa :-
+	edge(a, e, b),
+	edge(a, e, b).
+\end{lstlisting}
+
+Unfortunately this will succeed on any (non-empty) graph, because anything solving the first $\kwa{edge(a, e, b)}$ will also solve the second $\kwa{edge(a, e, b)}$. We want two distinct edges which are syntactically equivalent. Expressing that is a bit tricky. Here's one solution.
+
+An edge is parallel if it exists in the list of edges, and the number of times it occurs is more than once. I don't think SWI-Prolog has a built-in $\kwa{count}$ predicate, so let's implement that.
+
+\begin{lstlisting}
+count(_, [], 0).
+
+count(X, [X|Xs], Count) :-
+   count(X, Xs, Count2),
+   Count is Count2 + 1.
+   
+count(X, [Y|Xs], Count) :-
+   X \= Y,
+   count(X, Xs, Count).
+\end{lstlisting}
+
+\noindent
+Furthermore we want to gather up the edges in the graph. We can do that using $\kwa{findall}$.
+
+\begin{lstlisting}
+edges(List) :-
+   findall(edge(A, E, B), edge(A, E, B), List).
+\end{lstlisting}
+
+\noindent
+Finally we can implement $\kwa{parallel \slash 1}$, which holds if the argument is an edge.
+
+\begin{lstlisting}
+parallel(E) :-
+   edges(Edges),
+   member(E, Edges),
+   count(E, Edges, Count),
+   Count > 1.
+\end{lstlisting}
+
+\noindent
+Finally we can implement the more robust version of $\kwa{ndfa}$ which can deal with parallel edges.
+
+\begin{lstlisting}
+ndfa :- parallel(_).
+
+ndfa :-
+   edge(Start, Event, End1),
+   edge(Start, Event, End2),
+   End1 \= End2, !.
+\end{lstlisting}
+
+\noindent
+It's not perfect though. Let's test it on the following graph.
+
+\begin{lstlisting}
+edge(1, event, 2).
+edge(1, event, 2).
+edge(1, event, 4).
+\end{lstlisting}
+
+\begin{lstlisting}
+$?-$ ndfa.
+true ;
+true ;
+true.
+\end{lstlisting}
+
+\noindent
+This happens because there are three derivations which show our graph is non-deterministic.
+
+\begin{enumerate}
+	\item Show that $\kwa{edge(1, event, 2)}$ is parallel.
+	\item Show that the other $\kwa{edge(1, event, 2)}$ is parallel.
+	\item Show that a pair of edges go to the same destination node.
+\end{enumerate}
+
+\noindent
+If we didn't have that cut on the second case of $\kwa{ndfa}$, we'd have even more solutions (because it would be finding all the pairs which go to the same node, not just a single pair). A quick way to prune this down is to use cuts.
+
+\begin{lstlisting}
+ndfa :- parallel(_), !.
+
+ndfa :-
+   edge(Start, Event, End1),
+   edge(Start, Event, End2),
+   End1 \= End2, !.
+\end{lstlisting}
+
+\noindent
+Now it will only search for one solution and stop when we find it. Another strategy would be to put the cut inside the $\kwa{parallel}$ predicate (if in your situation you only care about whether the graph \textit{contains} parallel edges, but not what they are). \\
+
+\noindent
+The use of cuts in this manner is a bit like the way you pattern-match in Haskell. Recall that when you have multiple definitions for a function $f$, when you call $f$ Haskell will go down the list, matching what you've passed in as arguments to the patterns defined. When it sees one that matches, it executes that definition of the function and ignores the rest. This is a little bit like what Prolog is doing: it's trying to find the first case of $\kwa{ndfa}$ applicable, and when it finds a successful one it ignores the others.
+
+
+
+
+\end{document}
+
+
+
+
+
+
+
+
+
